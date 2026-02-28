@@ -3,11 +3,13 @@
 
 [package]
 name = "addended_ordered_map"
-version.workspace = true
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
+version = "0.1.0"
+edition = "2021"
+authors = [
+    "Anghelo Carvajal <angheloalf95@gmail.com>",
+]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Decompollaborate/addended_ordered_map"
 # description = ""
 readme = "README.md"
 # keywords = []
@@ -18,7 +20,7 @@ categories = ["no-std"]
 # cargo install cargo-msrv --locked
 # cargo msrv find -- cargo check -p addended_ordered_map
 # ```
-rust-version = "1.83.0"
+rust-version = "1.60.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -41,6 +43,3 @@ nightly = []
 polonius-the-crab = "0"
 
 pyo3 = { version = "0.28", optional = true }
-
-[dev-dependencies]
-pretty_assertions = "1"

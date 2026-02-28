@@ -20,21 +20,13 @@ pub type Range<'a, K, V> = btree_map::Range<'a, K, V>;
 pub type RangeMut<'a, K, V> = btree_map::RangeMut<'a, K, V>;
 
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AddendedOrderedMap<K, V, SIZE>
-where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
-{
+pub struct AddendedOrderedMap<K, V, SIZE> {
     inner: BTreeMap<K, V>,
     phantom: PhantomData<SIZE>,
 }
 
-impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
-where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
-{
-    pub const fn new() -> Self {
+impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE> {
+    pub fn new() -> Self {
         Self {
             inner: BTreeMap::new(),
             phantom: PhantomData,
@@ -54,13 +46,11 @@ where
         } else {
             let mut range = self.inner.range(..=key);
 
-            if let Some((other_key, v)) = range.next_back() {
-                let other_key = *other_key;
-                if &other_key == key || *key < other_key + v.size() {
-                    Some((other_key, v))
-                } else {
-                    None
-                }
+            let (other_key, v) = range.next_back()?;
+
+            let other_key = *other_key;
+            if &other_key == key || *key < other_key + v.size() {
+                Some((other_key, v))
             } else {
                 None
             }
@@ -108,13 +98,10 @@ where
         } else {
             let mut range = self.inner.range_mut(..=key);
 
-            if let Some((other_key, v)) = range.next_back() {
-                let other_key = *other_key;
-                if &other_key == key || *key < other_key + v.size() {
-                    Some((other_key, v))
-                } else {
-                    None
-                }
+            let (other_key, v) = range.next_back()?;
+            let other_key = *other_key;
+            if &other_key == key || *key < other_key + v.size() {
+                Some((other_key, v))
             } else {
                 None
             }
@@ -272,8 +259,7 @@ where
 
 impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
+    K: Ord,
 {
     pub fn iter(&self) -> btree_map::Iter<'_, K, V> {
         self.inner.iter()
@@ -322,8 +308,8 @@ where
 
 impl<K, V, SIZE> fmt::Debug for AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord + Copy + Add<SIZE, Output = K> + fmt::Debug,
-    V: SizedValue<SIZE> + fmt::Debug,
+    K: fmt::Debug,
+    V: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Manually implement Debug to hide the `inner` indirection
@@ -331,11 +317,7 @@ where
     }
 }
 
-impl<K, V, SIZE> Default for AddendedOrderedMap<K, V, SIZE>
-where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
-{
+impl<K, V, SIZE> Default for AddendedOrderedMap<K, V, SIZE> {
     fn default() -> Self {
         Self::new()
     }
@@ -343,8 +325,7 @@ where
 
 impl<'a, K, V, SIZE> IntoIterator for &'a AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
+    K: Ord,
 {
     type Item = (&'a K, &'a V);
     type IntoIter = btree_map::Iter<'a, K, V>;
@@ -356,9 +337,6 @@ where
 
 /*
 impl<'a, K, V, SIZE> IntoIterator for &'a mut AddendedOrderedMap<K, V, SIZE>
-where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
 {
     type Item = (&'a K, &'a mut V);
     type IntoIter = btree_map::IterMut<'a, K, V>;
@@ -369,11 +347,7 @@ where
 }
 */
 
-impl<K, V, SIZE> IntoIterator for AddendedOrderedMap<K, V, SIZE>
-where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
-{
+impl<K, V, SIZE> IntoIterator for AddendedOrderedMap<K, V, SIZE> {
     type Item = (K, V);
     type IntoIter = btree_map::IntoIter<K, V>;
 
@@ -385,8 +359,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use pretty_assertions::assert_eq;
 
     impl SizedValue<u32> for Option<u32> {
         fn size(&self) -> u32 {

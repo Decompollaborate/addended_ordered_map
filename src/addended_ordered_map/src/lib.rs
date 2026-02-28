@@ -14,6 +14,6 @@ mod addended_ordered_map;
 mod find_settings;
 mod sized_value;
 
-pub use addended_ordered_map::{AddendedOrderedMap, Range, RangeMut};
-pub use find_settings::FindSettings;
-pub use sized_value::SizedValue;
+pub use self::addended_ordered_map::{AddendedOrderedMap, Range, RangeMut};
+pub use self::find_settings::FindSettings;
+pub use self::sized_value::SizedValue;
