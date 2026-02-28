@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: © 2026 Decompollaborate
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "addended_ordered_map"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+# description = ""
+readme = "README.md"
+# keywords = []
+categories = ["no-std"]
+
+# Use https://github.com/foresterre/cargo-msrv to check the MSRV
+# ```
+# cargo install cargo-msrv --locked
+# cargo msrv find -- cargo check -p addended_ordered_map
+# ```
+rust-version = "1.83.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "addended_ordered_map"
+path = "src/lib.rs"
+
+[features]
+default = []
+std = []
+
+# Compatibility with python bindings via pyo3
+pyo3 = ["dep:pyo3"]
+
+# Evil stuff, do not use.
+nightly = []
+
+[dependencies]
+ # TODO: get rid of the polonius stuff when the new borrow checker has been released.
+polonius-the-crab = "0"
+
+pyo3 = { version = "0.28", optional = true }
+
+[dev-dependencies]
+pretty_assertions = "1"
