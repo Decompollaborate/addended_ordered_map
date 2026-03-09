@@ -32,6 +32,14 @@ impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE> {
             phantom: PhantomData,
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
 }
 
 impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
@@ -67,30 +75,6 @@ where
         self.find(key, settings).map(|x| x.1)
     }
 
-    /*
-    pub fn contains_key<Q>(&self, key: &Q) -> bool
-    where
-        K: Borrow<Q>,
-        Q: ?Sized + Ord,
-    {
-        self.inner.contains_key(key)
-    }
-    */
-
-    pub fn len(&self) -> usize {
-        self.inner.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.inner.is_empty()
-    }
-}
-
-impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
-where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
-{
     #[must_use]
     pub fn find_mut(&mut self, key: &K, settings: FindSettings) -> Option<(K, &mut V)> {
         if !settings.allow_addend {
@@ -107,6 +91,18 @@ where
             }
         }
     }
+}
+
+impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE> {
+    /*
+    pub fn contains_key<Q>(&self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Ord,
+    {
+        self.inner.contains_key(key)
+    }
+    */
 }
 
 #[cfg(not(feature = "nightly"))]

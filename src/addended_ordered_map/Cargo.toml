@@ -33,7 +33,10 @@ default = []
 std = []
 
 # Compatibility with python bindings via pyo3
-pyo3 = ["dep:pyo3"]
+pyo3 = [
+    "dep:pyo3",
+    "std",
+]
 
 # Evil stuff, do not use.
 nightly = []

@@ -17,3 +17,7 @@ mod sized_value;
 pub use self::addended_ordered_map::{AddendedOrderedMap, Range, RangeMut};
 pub use self::find_settings::FindSettings;
 pub use self::sized_value::SizedValue;
+
+
+#[cfg(feature = "pyo3")]
+mod python_bindings;
