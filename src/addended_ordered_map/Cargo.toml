@@ -4,13 +4,13 @@
 [package]
 name = "addended_ordered_map"
 version = "0.1.0"
+# description = ""
 edition = "2021"
 authors = [
     "Anghelo Carvajal <angheloalf95@gmail.com>",
 ]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Decompollaborate/addended_ordered_map"
-# description = ""
 readme = "README.md"
 # keywords = []
 categories = ["no-std"]

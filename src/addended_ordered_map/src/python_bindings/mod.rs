@@ -11,7 +11,7 @@ pub use py_sized_value::PySizedValueBase;
 
 #[cfg(feature = "pyo3")]
 #[pymodule]
-fn spimdisasm(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn addended_ordered_map(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyAddendedOrderedMap>()?;
     m.add_class::<PySizedValueBase>()?;
 

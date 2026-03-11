@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: © 2026 Decompollaborate
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[project]
+name = "addended_ordered_map"
+version = "0.1.0"
+# description = ""
+readme = "README.md"
+# license = {file = "../../LICENSE"}
+requires-python = ">=3.9"
+authors = [
+    { name="Anghelo Carvajal", email="angheloalf95@gmail.com" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+
+    "License :: OSI Approved :: MIT License",
+
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+
+]
+
+[project.urls]
+Repository = "https://github.com/Decompollaborate/addended_ordered_map"
+Issues = "https://github.com/Decompollaborate/addended_ordered_map/issues"
+Changelog = "https://github.com/Decompollaborate/addended_ordered_map/blob/master/CHANGELOG.md"
+
+[build-system]
+requires = ["maturin>=1,<2"]
+build-backend = "maturin"
+
+[tool.maturin]
+features = ["pyo3/extension-module", "pyo3"]
+cargo-extra-args = "--crate-type=cdylib"
