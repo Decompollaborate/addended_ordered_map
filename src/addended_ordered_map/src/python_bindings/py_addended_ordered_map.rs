@@ -8,7 +8,7 @@ use pyo3::types::PyInt;
 use crate::{AddendedOrderedMap, FindSettings};
 use crate::python_bindings::PySizedValueBase;
 
-#[pyclass(name = "AddendedOrderedMap")]
+#[pyclass(name = "AddendedOrderedMap", module="addended_ordered_map", generic)]
 pub struct PyAddendedOrderedMap {
     inner: AddendedOrderedMap<u64, Py<PySizedValueBase>, u64>,
 }

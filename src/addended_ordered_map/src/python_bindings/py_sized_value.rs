@@ -6,11 +6,17 @@ use pyo3::exceptions::PyNotImplementedError;
 
 use crate::SizedValue;
 
-#[pyclass(name = "SizedValue", subclass, extends=pyo3::types::PyAny)]
+#[pyclass(name = "SizedValue", module="addended_ordered_map", subclass, extends=pyo3::types::PyAny)]
 #[non_exhaustive]
 pub struct PySizedValueBase {}
 
+#[pymethods]
 impl PySizedValueBase {
+    #[new]
+    pub fn new() -> Self {
+        Self {}
+    }
+
     pub fn get_size(&self) -> PyResult<u64> {
         Err(PyNotImplementedError::new_err(
             "get_size must be implemented by subclass",
