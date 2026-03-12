@@ -44,4 +44,18 @@ impl PyAddendedOrderedMap {
         let (v, newly_created) = self.inner.find_mut_or_insert_with(extracted_key, find_settings, || new_value);
         Ok((v, newly_created))
     }
+
+    pub fn find_or_insert_with<'py>(&mut self, key: &Bound<'py, PyAny>, new_default: &Bound<'py, PyAny>) -> PyResult<(&Py<PySizedValueBase>, bool)> {
+        // if !new_default.is_callable()
+        let extracted_key: u64 = key.extract()?;
+        let find_settings = FindSettings::new(true);
+
+        let (v, newly_created) = self.inner.find_mut_or_insert_with(extracted_key, find_settings, || {
+            // call a callable python object/function/lambda/etc
+            let result = new_default.call0().unwrap();
+            let casted = result.cast().map(|x| x.clone().unbind());
+            casted.unwrap()
+        });
+        Ok((v, newly_created))
+    }
 }

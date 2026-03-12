@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: © 2026 Decompollaborate
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-from typing import Generic, Optional, TypeVar
+from typing import Callable, Generic, Optional, TypeVar
 
 
 
@@ -23,4 +23,7 @@ class AddendedOrderedMap(Generic[V]):
         ...
 
     def find_or_insert(self, key: int, new_value: V) -> tuple[V, bool]:
+        ...
+
+    def find_or_insert_with(self, key: int, new_default: Callable[[], V]) -> tuple[V, bool]:
         ...
