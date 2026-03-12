@@ -38,3 +38,5 @@ features = [
     "pyo3",
 ]
 cargo-extra-args = "--crate-type=cdylib"
+# Allows to have the .pyi files inside the python/addended_ordered_map dir.
+python-source = "python"

@@ -46,6 +46,3 @@ nightly = []
 polonius-the-crab = "0"
 
 pyo3 = { version = "0.28", optional = true }
-
-[package.metadata.maturin]
-python-source = "python"
