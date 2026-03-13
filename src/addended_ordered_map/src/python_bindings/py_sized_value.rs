@@ -1,13 +1,21 @@
 /* SPDX-FileCopyrightText: © 2026 Decompollaborate */
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
+use alloc::sync::Arc;
+
 use pyo3::exceptions::PyNotImplementedError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyTuple};
 
 use crate::SizedValue;
 
-#[pyclass(name = "SizedValue", module="addended_ordered_map", subclass, extends=pyo3::types::PyAny)]
+#[pyclass(
+    name = "SizedValue",
+    module = "addended_ordered_map",
+    subclass,
+    from_py_object
+)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[non_exhaustive]
 pub struct PySizedValueBase;
 
@@ -36,5 +44,11 @@ impl SizedValue<u64> for Py<PySizedValueBase> {
             size.extract(py).unwrap()
         })
         .unwrap()
+    }
+}
+
+impl SizedValue<u64> for Arc<Py<PySizedValueBase>> {
+    fn size(&self) -> u64 {
+        Arc::as_ref(self).size()
     }
 }

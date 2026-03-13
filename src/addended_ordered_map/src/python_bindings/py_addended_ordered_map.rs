@@ -1,16 +1,20 @@
 /* SPDX-FileCopyrightText: © 2026 Decompollaborate */
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
+use alloc::sync::Arc;
+
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyInt;
 
-use crate::python_bindings::{PyFindSettings, PySizedValueBase};
+use crate::python_bindings::{PyFindSettings, PyIntoIter, PySizedValueBase};
 use crate::AddendedOrderedMap;
 
 #[pyclass(name = "AddendedOrderedMap", module = "addended_ordered_map", generic)]
 pub struct PyAddendedOrderedMap {
-    inner: AddendedOrderedMap<u64, Py<PySizedValueBase>, u64>,
+    // We use Arc because Py can't be just cloned
+    // https://pyo3.rs/v0.28.2/migration.html#pyclone-is-now-gated-behind-the-py-clone-feature
+    inner: AddendedOrderedMap<u64, Arc<Py<PySizedValueBase>>, u64>,
 }
 
 #[pymethods]
@@ -89,7 +93,7 @@ impl PyAddendedOrderedMap {
 
         let (v, newly_created) =
             self.inner
-                .find_mut_or_insert_with(extracted_key, find_settings, || new_value);
+                .find_mut_or_insert_with(extracted_key, find_settings, || Arc::new(new_value));
         Ok((v, newly_created))
     }
 
@@ -110,7 +114,7 @@ impl PyAddendedOrderedMap {
                     // call a callable python object/function/lambda/etc
                     let result = new_default.call0().unwrap();
                     let casted = result.cast().map(|x| x.clone().unbind());
-                    casted.unwrap()
+                    Arc::new(casted.unwrap())
                 });
         Ok((v, newly_created))
     }
@@ -144,7 +148,9 @@ impl PyAddendedOrderedMap {
     }
     */
 
-    // iter
+    pub fn __iter__(&self) -> PyIntoIter {
+        PyIntoIter::new(self.inner.clone())
+    }
 
     // range
 
