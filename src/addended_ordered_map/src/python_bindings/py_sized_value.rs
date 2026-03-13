@@ -1,8 +1,8 @@
 /* SPDX-FileCopyrightText: © 2026 Decompollaborate */
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
-use pyo3::prelude::*;
 use pyo3::exceptions::PyNotImplementedError;
+use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyTuple};
 
 use crate::SizedValue;
@@ -34,6 +34,7 @@ impl SizedValue<u64> for Py<PySizedValueBase> {
         Python::try_attach(|py| {
             let size = self.call_method0(py, "get_size").unwrap();
             size.extract(py).unwrap()
-        }).unwrap()
+        })
+        .unwrap()
     }
 }
