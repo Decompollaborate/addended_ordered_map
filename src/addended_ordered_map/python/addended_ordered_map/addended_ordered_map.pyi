@@ -18,11 +18,27 @@ V = TypeVar("V", bound=SizedValue)
 
 class AddendedOrderedMap(Generic[V]):
     def __init__(self) -> None: ...
+
+    def len(self) -> int: ...
+    def is_empty(self) -> bool: ...
+
     def find(
         self,
         key: int,
         settings: FindSettings = FindSettings(True),
     ) -> Optional[tuple[int, V]]: ...
+
+    def find_key(
+        self,
+        key: int,
+        settings: FindSettings = FindSettings(True),
+    ) -> Optional[int]: ...
+
+    def find_value(
+        self,
+        key: int,
+        settings: FindSettings = FindSettings(True),
+    ) -> Optional[V]: ...
 
     def find_or_insert(
         self,
@@ -37,3 +53,5 @@ class AddendedOrderedMap(Generic[V]):
         new_default: Callable[[], V],
         settings: FindSettings = FindSettings(True),
     ) -> tuple[V, bool]: ...
+
+    def clear(self) -> None: ...

@@ -59,6 +59,8 @@ def basic_test():
     assert val == (0x100C, TestValue(0x100C, 0x10)), val
     assert val is not None
     assert val[1] is value_0x100C
+    val[1].size = 1
+    assert test_map.find(0x1010) is None
 
 
 def basic_test_with():
@@ -97,6 +99,8 @@ def basic_test_with():
     assert val == (0x100C, TestValue(0x100C, 0x10)), val
     assert val is not None
     assert val[1] is value_0x100C
+    val[1].size = 1
+    assert test_map.find(0x1010) is None
 
 
 basic_test()

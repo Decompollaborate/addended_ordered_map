@@ -22,6 +22,14 @@ impl PyAddendedOrderedMap {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
     #[pyo3(signature = (key, settings = PyFindSettings::new(true)))]
     pub fn find<'py>(
         &self,
@@ -40,6 +48,34 @@ impl PyAddendedOrderedMap {
             Ok(None)
         }
     }
+
+    #[pyo3(signature = (key, settings = PyFindSettings::new(true)))]
+    pub fn find_key<'py>(
+        &self,
+        key: &Bound<'py, PyAny>,
+        settings: PyFindSettings,
+    ) -> PyResult<Option<Py<PyInt>>> {
+        Ok(self.find(key, settings)?.map(|x| x.0))
+    }
+
+    #[pyo3(signature = (key, settings = PyFindSettings::new(true)))]
+    pub fn find_value<'py>(
+        &self,
+        key: &Bound<'py, PyAny>,
+        settings: PyFindSettings,
+    ) -> PyResult<Option<&Py<PySizedValueBase>>> {
+        Ok(self.find(key, settings)?.map(|x| x.1))
+    }
+
+    /*
+    pub fn contains_key<Q>(&self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Ord,
+    {
+        self.inner.contains_key(key)
+    }
+    */
 
     #[pyo3(signature = (key, new_value, settings = PyFindSettings::new(true)))]
     pub fn find_or_insert<'py>(
@@ -78,4 +114,45 @@ impl PyAddendedOrderedMap {
                 });
         Ok((v, newly_created))
     }
+
+    pub fn clear(&mut self) {
+        self.inner.clear();
+    }
+
+    /*
+    pub fn remove<Q>(&mut self, value: &Q) -> Option<V>
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Ord,
+    {
+        self.inner.remove(value)
+    }
+
+    pub fn remove_entry<Q>(&mut self, value: &Q) -> Option<(K, V)>
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Ord,
+    {
+        self.inner.remove_entry(value)
+    }
+
+    pub fn retain<F>(&mut self, f: F)
+    where
+        F: FnMut(&K, &mut V) -> bool,
+    {
+        self.inner.retain(f);
+    }
+    */
+
+    // iter
+
+    // range
+
+    // keys
+
+    // values
+
+    // __str__
+
+    // __repr__
 }
