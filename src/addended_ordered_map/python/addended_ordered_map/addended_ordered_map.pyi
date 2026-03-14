@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: © 2026 Decompollaborate
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-from typing import Callable, Generator, Generic, Optional, TypeVar
+from typing import Callable, Iterator, Generic, Optional, TypeVar
 
 class FindSettings:
     def __init__(
@@ -56,4 +56,13 @@ class AddendedOrderedMap(Generic[V]):
 
     def clear(self) -> None: ...
 
-    def __iter__(self) -> Generator[tuple[int, V], None, None]: ...
+    def __iter__(self) -> Iterator[tuple[int, V]]: ...
+
+    def range(
+        self,
+        left: Optional[int],
+        right: Optional[int],
+    ) -> Iterator[tuple[int, V]]: ...
+
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...

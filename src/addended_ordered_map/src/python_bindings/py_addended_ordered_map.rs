@@ -7,7 +7,7 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyInt;
 
-use crate::python_bindings::{PyFindSettings, PyIntoIter, PySizedValueBase};
+use crate::python_bindings::{PyFindSettings, PyIntoIter, PyRangeMut, PySizedValueBase};
 use crate::AddendedOrderedMap;
 
 #[pyclass(name = "AddendedOrderedMap", module = "addended_ordered_map", generic)]
@@ -152,13 +152,47 @@ impl PyAddendedOrderedMap {
         PyIntoIter::new(self.inner.clone())
     }
 
-    // range
+    pub fn range(&mut self, left: Option<u64>, right: Option<u64>) -> PyRangeMut {
+        PyRangeMut::new(&mut self.inner, left, right)
+    }
 
     // keys
 
     // values
 
-    // __str__
+    pub fn __repr__<'py>(&self, py: Python<'py>) -> String {
+        let mut out = String::new();
+        out += "AddendedOrderedMap({";
+        out += self.repr_body(py).as_str();
+        out += "})";
+        out
+    }
 
-    // __repr__
+    pub fn __str__<'py>(&self, py: Python<'py>) -> String {
+        self.__repr__(py)
+    }
+}
+
+impl PyAddendedOrderedMap {
+    pub fn repr_body<'py>(&self, py: Python<'py>) -> String {
+        let mut body = String::new();
+        let mut iter = self.inner.iter();
+
+        // special case the first case to allow adding the comma in the loop
+        if let Some((k, v)) = iter.next() {
+            let v_repr = v.call_method0(py, "__repr__").unwrap();
+
+            body += &format!("{k}: {v_repr}");
+        } else {
+            return body;
+        }
+
+        for (k, v) in iter {
+            let v_repr = v.call_method0(py, "__repr__").unwrap();
+
+            body += &format!(", {k}: {v_repr}");
+        }
+
+        body
+    }
 }

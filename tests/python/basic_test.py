@@ -30,9 +30,16 @@ def basic_test():
     value_0x1000 = TestValue(0x1000, 4)
     value_0x1004 = TestValue(0x1004, 4)
 
+    print(test_map)
+
     test_map.find_or_insert(0x100C, value_0x100C)
+    print(test_map)
+
     test_map.find_or_insert(0x1000, value_0x1000)
+    print(test_map)
+
     test_map.find_or_insert(0x1004, value_0x1004)
+    print(test_map)
 
     val = test_map.find(0x1000)
     assert val == (0x1000, TestValue(0x1000, 4)), val
@@ -71,6 +78,15 @@ def basic_test():
     except Exception as e:
         assert isinstance(e, StopIteration), e
 
+    ranged = test_map.range(0x1002, 0x1006)
+    val = next(ranged)
+    assert val == (0x1004, value_0x1004)
+    assert val[1] is value_0x1004
+    try:
+        next(iterable)
+    except Exception as e:
+        assert isinstance(e, StopIteration), e
+
 
 def basic_test_with():
     test_map: AddendedOrderedMap[TestValue] = AddendedOrderedMap()
@@ -79,9 +95,16 @@ def basic_test_with():
     value_0x1000 = TestValue(0x1000, 4)
     value_0x1004 = TestValue(0x1004, 4)
 
+    print(test_map)
+
     test_map.find_or_insert_with(0x100C, lambda: value_0x100C)
+    print(test_map)
+
     test_map.find_or_insert_with(0x1000, lambda: value_0x1000)
+    print(test_map)
+
     test_map.find_or_insert_with(0x1004, lambda: value_0x1004)
+    print(test_map)
 
     val = test_map.find(0x1000)
     assert val == (0x1000, TestValue(0x1000, 4)), val
@@ -115,6 +138,15 @@ def basic_test_with():
     assert next(iterable) == (0x1000, value_0x1000)
     assert next(iterable) == (0x1004, value_0x1004)
     assert next(iterable) == (0x100C, value_0x100C)
+    try:
+        next(iterable)
+    except Exception as e:
+        assert isinstance(e, StopIteration), e
+
+    ranged = test_map.range(0x1002, 0x1006)
+    val = next(ranged)
+    assert val == (0x1004, value_0x1004)
+    assert val[1] is value_0x1004
     try:
         next(iterable)
     except Exception as e:
