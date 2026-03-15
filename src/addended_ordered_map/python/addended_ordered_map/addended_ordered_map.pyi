@@ -54,6 +54,22 @@ class AddendedOrderedMap(Generic[V]):
         settings: FindSettings = FindSettings(True),
     ) -> tuple[V, bool]: ...
 
+    def contains_key_exact(
+        self,
+        key: int,
+    ) -> bool: ...
+
+    def pop_exact(
+        self,
+        key: int,
+    ) -> Optional[tuple[int, V]]: ...
+
+    def pop_range(
+        self,
+        left: Optional[int],
+        right: Optional[int],
+    ) -> list[tuple[int, V]]: ...
+
     def clear(self) -> None: ...
 
     def __iter__(self) -> Iterator[tuple[int, V]]: ...

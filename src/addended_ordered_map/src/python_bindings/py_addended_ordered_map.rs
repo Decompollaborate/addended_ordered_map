@@ -37,13 +37,12 @@ impl PyAddendedOrderedMap {
     #[pyo3(signature = (key, settings = PyFindSettings::new(true)))]
     pub fn find<'py>(
         &self,
-        key: &Bound<'py, PyAny>,
+        key: u64,
         settings: PyFindSettings,
     ) -> PyResult<Option<(Py<PyInt>, &Py<PySizedValueBase>)>> {
-        let extracted_key: u64 = key.extract()?;
         let find_settings = settings.into_inner();
 
-        if let Some((k, v)) = self.inner.find(&extracted_key, find_settings) {
+        if let Some((k, v)) = self.inner.find(&key, find_settings) {
             let k2 = Python::try_attach(|py| k.into_pyobject(py).map(|x| x.unbind()))
                 .ok_or_else(|| PyRuntimeError::new_err("Internal conversion error"))??;
 
@@ -54,18 +53,14 @@ impl PyAddendedOrderedMap {
     }
 
     #[pyo3(signature = (key, settings = PyFindSettings::new(true)))]
-    pub fn find_key<'py>(
-        &self,
-        key: &Bound<'py, PyAny>,
-        settings: PyFindSettings,
-    ) -> PyResult<Option<Py<PyInt>>> {
+    pub fn find_key<'py>(&self, key: u64, settings: PyFindSettings) -> PyResult<Option<Py<PyInt>>> {
         Ok(self.find(key, settings)?.map(|x| x.0))
     }
 
     #[pyo3(signature = (key, settings = PyFindSettings::new(true)))]
     pub fn find_value<'py>(
         &self,
-        key: &Bound<'py, PyAny>,
+        key: u64,
         settings: PyFindSettings,
     ) -> PyResult<Option<&Py<PySizedValueBase>>> {
         Ok(self.find(key, settings)?.map(|x| x.1))
@@ -84,39 +79,69 @@ impl PyAddendedOrderedMap {
     #[pyo3(signature = (key, new_value, settings = PyFindSettings::new(true)))]
     pub fn find_or_insert<'py>(
         &mut self,
-        key: &Bound<'py, PyAny>,
+        key: u64,
         new_value: Py<PySizedValueBase>,
         settings: PyFindSettings,
     ) -> PyResult<(&Py<PySizedValueBase>, bool)> {
-        let extracted_key: u64 = key.extract()?;
         let find_settings = settings.into_inner();
 
-        let (v, newly_created) =
-            self.inner
-                .find_mut_or_insert_with(extracted_key, find_settings, || Arc::new(new_value));
+        let (v, newly_created) = self
+            .inner
+            .find_mut_or_insert_with(key, find_settings, || Arc::new(new_value));
         Ok((v, newly_created))
     }
 
     #[pyo3(signature = (key, new_default, settings = PyFindSettings::new(true)))]
     pub fn find_or_insert_with<'py>(
         &mut self,
-        key: &Bound<'py, PyAny>,
+        key: u64,
         new_default: &Bound<'py, PyAny>,
         settings: PyFindSettings,
     ) -> PyResult<(&Py<PySizedValueBase>, bool)> {
         // if !new_default.is_callable()
-        let extracted_key: u64 = key.extract()?;
         let find_settings = settings.into_inner();
 
-        let (v, newly_created) =
-            self.inner
-                .find_mut_or_insert_with(extracted_key, find_settings, || {
-                    // call a callable python object/function/lambda/etc
-                    let result = new_default.call0().unwrap();
-                    let casted = result.cast().map(|x| x.clone().unbind());
-                    Arc::new(casted.unwrap())
-                });
+        let (v, newly_created) = self.inner.find_mut_or_insert_with(key, find_settings, || {
+            // call a callable python object/function/lambda/etc
+            let result = new_default.call0().unwrap();
+            let casted = result.cast().map(|x| x.clone().unbind());
+            Arc::new(casted.unwrap())
+        });
         Ok((v, newly_created))
+    }
+
+    pub fn contains_key_exact(&self, key: u64) -> bool {
+        self.inner.contains_key_exact(&key)
+    }
+
+    pub fn pop_exact<'py>(
+        &mut self,
+        py: Python<'py>,
+        key: u64,
+    ) -> Option<(u64, Py<PySizedValueBase>)> {
+        self.inner
+            .pop_exact(&key)
+            .map(|(k, v)| (k, v.clone_ref(py)))
+    }
+
+    pub fn pop_range<'py>(
+        &mut self,
+        py: Python<'py>,
+        left: Option<u64>,
+        right: Option<u64>,
+    ) -> Vec<(u64, Py<PySizedValueBase>)> {
+        fn map_impl<'py>(
+            py: Python<'py>,
+            iter: impl Iterator<Item = (u64, Arc<Py<PySizedValueBase>>)>,
+        ) -> Vec<(u64, Py<PySizedValueBase>)> {
+            iter.map(|(k, v)| (k, v.clone_ref(py))).collect()
+        }
+        match (left, right) {
+            (Some(l), Some(r)) => map_impl(py, self.inner.extract_if(l..r, |_k, _v| true)),
+            (Some(l), None) => map_impl(py, self.inner.extract_if(l.., |_k, _v| true)),
+            (None, Some(r)) => map_impl(py, self.inner.extract_if(..r, |_k, _v| true)),
+            (None, None) => map_impl(py, self.inner.extract_if(.., |_k, _v| true)),
+        }
     }
 
     pub fn clear(&mut self) {
@@ -124,22 +149,6 @@ impl PyAddendedOrderedMap {
     }
 
     /*
-    pub fn remove<Q>(&mut self, value: &Q) -> Option<V>
-    where
-        K: Borrow<Q>,
-        Q: ?Sized + Ord,
-    {
-        self.inner.remove(value)
-    }
-
-    pub fn remove_entry<Q>(&mut self, value: &Q) -> Option<(K, V)>
-    where
-        K: Borrow<Q>,
-        Q: ?Sized + Ord,
-    {
-        self.inner.remove_entry(value)
-    }
-
     pub fn retain<F>(&mut self, f: F)
     where
         F: FnMut(&K, &mut V) -> bool,

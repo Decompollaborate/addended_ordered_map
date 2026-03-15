@@ -14,6 +14,7 @@ use crate::AddendedOrderedMap;
     module = "addended_ordered_map",
     generic
 )]
+#[must_use]
 pub struct PyRangeMut {
     // We can't use real Range/RangeMut because they require a lifetime
     // parameter, which is a no-no for pyo3.
@@ -36,8 +37,8 @@ impl PyRangeMut {
 }
 
 impl PyRangeMut {
-    pub fn new<SIZE>(
-        map: &mut AddendedOrderedMap<u64, Arc<Py<PySizedValueBase>>, SIZE>,
+    pub fn new(
+        map: &mut AddendedOrderedMap<u64, Arc<Py<PySizedValueBase>>, u64>,
         left: Option<u64>,
         right: Option<u64>,
     ) -> Self {

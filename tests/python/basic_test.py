@@ -88,6 +88,20 @@ def basic_test():
         assert isinstance(e, StopIteration), e
 
 
+    assert test_map.contains_key_exact(0x1004)
+    val = test_map.pop_exact(0x1004)
+    assert val is not None
+    assert val == (0x1004, value_0x1004)
+    assert val[1] is value_0x1004
+    assert not test_map.contains_key_exact(0x1004)
+    assert test_map.pop_exact(0x1004) is None
+
+    val_test = test_map.pop_range(0x1008, 0x1010)
+    assert val_test == [(0x100C, value_0x100C)], val_test
+    val_test = test_map.pop_range(0x1008, 0x1010)
+    assert val_test == [], val_test
+
+
 def basic_test_with():
     test_map: AddendedOrderedMap[TestValue] = AddendedOrderedMap()
 
@@ -153,5 +167,21 @@ def basic_test_with():
         assert isinstance(e, StopIteration), e
 
 
+    assert test_map.contains_key_exact(0x1004)
+    val = test_map.pop_exact(0x1004)
+    assert val is not None
+    assert val == (0x1004, value_0x1004)
+    assert val[1] is value_0x1004
+    assert not test_map.contains_key_exact(0x1004)
+    assert test_map.pop_exact(0x1004) is None
+
+    val_test = test_map.pop_range(0x1008, 0x1010)
+    assert val_test == [(0x100C, value_0x100C)], val_test
+    val_test = test_map.pop_range(0x1008, 0x1010)
+    assert val_test == [], val_test
+
+
 basic_test()
 basic_test_with()
+
+print("OK")

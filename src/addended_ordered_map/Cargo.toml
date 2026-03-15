@@ -32,10 +32,15 @@ path = "src/lib.rs"
 default = []
 std = []
 
+# Exposes the `extract_if` method.
+# Bumps the MSRV to 1.91.
+extract_if = []
+
 # Compatibility with python bindings via pyo3
 pyo3 = [
     "dep:pyo3",
     "std",
+    "extract_if",
 ]
 
 # Evil stuff, do not use.

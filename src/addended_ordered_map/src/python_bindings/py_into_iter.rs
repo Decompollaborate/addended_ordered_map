@@ -14,6 +14,7 @@ use crate::AddendedOrderedMap;
     module = "addended_ordered_map",
     generic
 )]
+#[must_use]
 pub struct PyIntoIter {
     inner: btree_map::IntoIter<u64, Arc<Py<PySizedValueBase>>>,
 }
@@ -33,7 +34,7 @@ impl PyIntoIter {
 }
 
 impl PyIntoIter {
-    pub fn new<SIZE>(map: AddendedOrderedMap<u64, Arc<Py<PySizedValueBase>>, SIZE>) -> Self {
+    pub fn new(map: AddendedOrderedMap<u64, Arc<Py<PySizedValueBase>>, u64>) -> Self {
         Self {
             inner: map.into_iter(),
         }

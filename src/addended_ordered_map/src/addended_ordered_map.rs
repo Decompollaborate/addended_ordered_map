@@ -20,12 +20,20 @@ pub type Range<'a, K, V> = btree_map::Range<'a, K, V>;
 pub type RangeMut<'a, K, V> = btree_map::RangeMut<'a, K, V>;
 
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AddendedOrderedMap<K, V, SIZE> {
+pub struct AddendedOrderedMap<K, V, SIZE>
+where
+    K: Ord + Copy + Add<SIZE, Output = K>,
+    V: SizedValue<SIZE>,
+{
     inner: BTreeMap<K, V>,
     phantom: PhantomData<SIZE>,
 }
 
-impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE> {
+impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
+where
+    K: Ord + Copy + Add<SIZE, Output = K>,
+    V: SizedValue<SIZE>,
+{
     pub fn new() -> Self {
         Self {
             inner: BTreeMap::new(),
@@ -91,18 +99,6 @@ where
             }
         }
     }
-}
-
-impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE> {
-    /*
-    pub fn contains_key<Q>(&self, key: &Q) -> bool
-    where
-        K: Borrow<Q>,
-        Q: ?Sized + Ord,
-    {
-        self.inner.contains_key(key)
-    }
-    */
 }
 
 #[cfg(not(feature = "nightly"))]
@@ -223,27 +219,17 @@ where
     K: Ord + Copy + Add<SIZE, Output = K>,
     V: SizedValue<SIZE>,
 {
+    pub fn contains_key_exact(&self, key: &K) -> bool {
+        self.inner.contains_key(key)
+    }
+
+    pub fn pop_exact(&mut self, key: &K) -> Option<(K, V)> {
+        self.inner.remove_entry(key)
+    }
+
     pub fn clear(&mut self) {
         self.inner.clear();
     }
-
-    /*
-    pub fn remove<Q>(&mut self, value: &Q) -> Option<V>
-    where
-        K: Borrow<Q>,
-        Q: ?Sized + Ord,
-    {
-        self.inner.remove(value)
-    }
-
-    pub fn remove_entry<Q>(&mut self, value: &Q) -> Option<(K, V)>
-    where
-        K: Borrow<Q>,
-        Q: ?Sized + Ord,
-    {
-        self.inner.remove_entry(value)
-    }
-    */
 
     pub fn retain<F>(&mut self, f: F)
     where
@@ -255,7 +241,8 @@ where
 
 impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord,
+    K: Ord + Copy + Add<SIZE, Output = K>,
+    V: SizedValue<SIZE>,
 {
     pub fn iter(&self) -> btree_map::Iter<'_, K, V> {
         self.inner.iter()
@@ -281,6 +268,15 @@ where
         self.inner.range_mut(range)
     }
 
+    #[cfg(feature = "extract_if")]
+    pub fn extract_if<F, R>(&mut self, range: R, pred: F) -> btree_map::ExtractIf<'_, K, V, R, F>
+    where
+        R: RangeBounds<K>,
+        F: FnMut(&K, &mut V) -> bool,
+    {
+        self.inner.extract_if(range, pred)
+    }
+
     pub fn keys(&self) -> btree_map::Keys<'_, K, V> {
         self.inner.keys()
     }
@@ -304,8 +300,8 @@ where
 
 impl<K, V, SIZE> fmt::Debug for AddendedOrderedMap<K, V, SIZE>
 where
-    K: fmt::Debug,
-    V: fmt::Debug,
+    K: fmt::Debug + Ord + Copy + Add<SIZE, Output = K>,
+    V: fmt::Debug + SizedValue<SIZE>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Manually implement Debug to hide the `inner` indirection
@@ -313,7 +309,11 @@ where
     }
 }
 
-impl<K, V, SIZE> Default for AddendedOrderedMap<K, V, SIZE> {
+impl<K, V, SIZE> Default for AddendedOrderedMap<K, V, SIZE>
+where
+    K: Ord + Copy + Add<SIZE, Output = K>,
+    V: SizedValue<SIZE>,
+{
     fn default() -> Self {
         Self::new()
     }
@@ -321,7 +321,8 @@ impl<K, V, SIZE> Default for AddendedOrderedMap<K, V, SIZE> {
 
 impl<'a, K, V, SIZE> IntoIterator for &'a AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord,
+    K: Ord + Copy + Add<SIZE, Output = K>,
+    V: SizedValue<SIZE>,
 {
     type Item = (&'a K, &'a V);
     type IntoIter = btree_map::Iter<'a, K, V>;
@@ -343,7 +344,11 @@ impl<'a, K, V, SIZE> IntoIterator for &'a mut AddendedOrderedMap<K, V, SIZE>
 }
 */
 
-impl<K, V, SIZE> IntoIterator for AddendedOrderedMap<K, V, SIZE> {
+impl<K, V, SIZE> IntoIterator for AddendedOrderedMap<K, V, SIZE>
+where
+    K: Ord + Copy + Add<SIZE, Output = K>,
+    V: SizedValue<SIZE>,
+{
     type Item = (K, V);
     type IntoIter = btree_map::IntoIter<K, V>;
 
