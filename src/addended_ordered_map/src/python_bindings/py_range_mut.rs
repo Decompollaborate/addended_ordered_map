@@ -6,7 +6,7 @@ use alloc::vec;
 
 use pyo3::prelude::*;
 
-use crate::python_bindings::PySizedValueBase;
+use crate::python_bindings::py_alias::{PyK, PyS, PyV};
 use crate::AddendedOrderedMap;
 
 #[pyclass(
@@ -19,7 +19,7 @@ pub struct PyRangeMut {
     // We can't use real Range/RangeMut because they require a lifetime
     // parameter, which is a no-no for pyo3.
     // Instead we collect the range into a vec iterator.
-    inner: vec::IntoIter<(u64, Arc<Py<PySizedValueBase>>)>,
+    inner: vec::IntoIter<(PyK, Arc<PyV>)>,
 }
 
 #[pymethods]
@@ -28,7 +28,7 @@ impl PyRangeMut {
         slf
     }
 
-    pub fn __next__(mut slf: PyRefMut<Self>) -> Option<(u64, Py<PySizedValueBase>)> {
+    pub fn __next__(mut slf: PyRefMut<Self>) -> Option<(PyK, PyV)> {
         slf.inner.next().map(|(k, v)| {
             let new_v = Python::try_attach(|py| v.clone_ref(py)).unwrap();
             (k, new_v)
@@ -38,9 +38,9 @@ impl PyRangeMut {
 
 impl PyRangeMut {
     pub fn new(
-        map: &mut AddendedOrderedMap<u64, Arc<Py<PySizedValueBase>>, u64>,
-        left: Option<u64>,
-        right: Option<u64>,
+        map: &mut AddendedOrderedMap<PyK, Arc<PyV>, PyS>,
+        left: Option<PyK>,
+        right: Option<PyK>,
     ) -> Self {
         let range = match (left, right) {
             (Some(l), Some(r)) => map.range(l..r),

@@ -7,14 +7,15 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyInt;
 
-use crate::python_bindings::{PyFindSettings, PyIntoIter, PyRangeMut, PySizedValueBase};
+use crate::python_bindings::py_alias::{PyK, PyS, PyV};
+use crate::python_bindings::{PyFindSettings, PyIntoIter, PyRangeMut};
 use crate::AddendedOrderedMap;
 
 #[pyclass(name = "AddendedOrderedMap", module = "addended_ordered_map", generic)]
 pub struct PyAddendedOrderedMap {
     // We use Arc because Py can't be just cloned
     // https://pyo3.rs/v0.28.2/migration.html#pyclone-is-now-gated-behind-the-py-clone-feature
-    inner: AddendedOrderedMap<u64, Arc<Py<PySizedValueBase>>, u64>,
+    inner: AddendedOrderedMap<PyK, Arc<PyV>, PyS>,
 }
 
 #[pymethods]
@@ -37,9 +38,9 @@ impl PyAddendedOrderedMap {
     #[pyo3(signature = (key, settings = PyFindSettings::new(true)))]
     pub fn find<'py>(
         &self,
-        key: u64,
+        key: PyK,
         settings: PyFindSettings,
-    ) -> PyResult<Option<(Py<PyInt>, &Py<PySizedValueBase>)>> {
+    ) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
         let find_settings = settings.into_inner();
 
         if let Some((k, v)) = self.inner.find(&key, find_settings) {
@@ -53,16 +54,12 @@ impl PyAddendedOrderedMap {
     }
 
     #[pyo3(signature = (key, settings = PyFindSettings::new(true)))]
-    pub fn find_key<'py>(&self, key: u64, settings: PyFindSettings) -> PyResult<Option<Py<PyInt>>> {
+    pub fn find_key<'py>(&self, key: PyK, settings: PyFindSettings) -> PyResult<Option<Py<PyInt>>> {
         Ok(self.find(key, settings)?.map(|x| x.0))
     }
 
     #[pyo3(signature = (key, settings = PyFindSettings::new(true)))]
-    pub fn find_value<'py>(
-        &self,
-        key: u64,
-        settings: PyFindSettings,
-    ) -> PyResult<Option<&Py<PySizedValueBase>>> {
+    pub fn find_value<'py>(&self, key: PyK, settings: PyFindSettings) -> PyResult<Option<&PyV>> {
         Ok(self.find(key, settings)?.map(|x| x.1))
     }
 
@@ -79,10 +76,10 @@ impl PyAddendedOrderedMap {
     #[pyo3(signature = (key, new_value, settings = PyFindSettings::new(true)))]
     pub fn find_or_insert<'py>(
         &mut self,
-        key: u64,
-        new_value: Py<PySizedValueBase>,
+        key: PyK,
+        new_value: PyV,
         settings: PyFindSettings,
-    ) -> PyResult<(&Py<PySizedValueBase>, bool)> {
+    ) -> PyResult<(&PyV, bool)> {
         let find_settings = settings.into_inner();
 
         let (v, newly_created) = self
@@ -94,10 +91,10 @@ impl PyAddendedOrderedMap {
     #[pyo3(signature = (key, new_default, settings = PyFindSettings::new(true)))]
     pub fn find_or_insert_with<'py>(
         &mut self,
-        key: u64,
+        key: PyK,
         new_default: &Bound<'py, PyAny>,
         settings: PyFindSettings,
-    ) -> PyResult<(&Py<PySizedValueBase>, bool)> {
+    ) -> PyResult<(&PyV, bool)> {
         // if !new_default.is_callable()
         let find_settings = settings.into_inner();
 
@@ -110,15 +107,11 @@ impl PyAddendedOrderedMap {
         Ok((v, newly_created))
     }
 
-    pub fn contains_key_exact(&self, key: u64) -> bool {
+    pub fn contains_key_exact(&self, key: PyK) -> bool {
         self.inner.contains_key_exact(&key)
     }
 
-    pub fn pop_exact<'py>(
-        &mut self,
-        py: Python<'py>,
-        key: u64,
-    ) -> Option<(u64, Py<PySizedValueBase>)> {
+    pub fn pop_exact<'py>(&mut self, py: Python<'py>, key: PyK) -> Option<(PyK, PyV)> {
         self.inner
             .pop_exact(&key)
             .map(|(k, v)| (k, v.clone_ref(py)))
@@ -127,13 +120,13 @@ impl PyAddendedOrderedMap {
     pub fn pop_range<'py>(
         &mut self,
         py: Python<'py>,
-        left: Option<u64>,
-        right: Option<u64>,
-    ) -> Vec<(u64, Py<PySizedValueBase>)> {
+        left: Option<PyK>,
+        right: Option<PyK>,
+    ) -> Vec<(PyK, PyV)> {
         fn map_impl<'py>(
             py: Python<'py>,
-            iter: impl Iterator<Item = (u64, Arc<Py<PySizedValueBase>>)>,
-        ) -> Vec<(u64, Py<PySizedValueBase>)> {
+            iter: impl Iterator<Item = (PyK, Arc<PyV>)>,
+        ) -> Vec<(PyK, PyV)> {
             iter.map(|(k, v)| (k, v.clone_ref(py))).collect()
         }
         match (left, right) {
@@ -161,7 +154,7 @@ impl PyAddendedOrderedMap {
         PyIntoIter::new(self.inner.clone())
     }
 
-    pub fn range(&mut self, left: Option<u64>, right: Option<u64>) -> PyRangeMut {
+    pub fn range(&mut self, left: Option<PyK>, right: Option<PyK>) -> PyRangeMut {
         PyRangeMut::new(&mut self.inner, left, right)
     }
 

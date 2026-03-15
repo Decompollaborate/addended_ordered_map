@@ -4,6 +4,7 @@
 use pyo3::prelude::*;
 
 mod py_addended_ordered_map;
+pub mod py_alias;
 mod py_find_settings;
 mod py_into_iter;
 mod py_range_mut;

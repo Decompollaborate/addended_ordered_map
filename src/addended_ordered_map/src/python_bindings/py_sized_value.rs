@@ -7,6 +7,7 @@ use pyo3::exceptions::PyNotImplementedError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyTuple};
 
+use crate::python_bindings::py_alias::PyS;
 use crate::SizedValue;
 
 #[pyclass(
@@ -30,15 +31,15 @@ impl PySizedValueBase {
         Self
     }
 
-    pub fn get_size(&self) -> PyResult<u64> {
+    pub fn get_size(&self) -> PyResult<PyS> {
         Err(PyNotImplementedError::new_err(
             "get_size must be implemented by subclass",
         ))
     }
 }
 
-impl SizedValue<u64> for Py<PySizedValueBase> {
-    fn size(&self) -> u64 {
+impl SizedValue<PyS> for Py<PySizedValueBase> {
+    fn size(&self) -> PyS {
         Python::try_attach(|py| {
             let size = self.call_method0(py, "get_size").unwrap();
             size.extract(py).unwrap()
@@ -47,8 +48,8 @@ impl SizedValue<u64> for Py<PySizedValueBase> {
     }
 }
 
-impl SizedValue<u64> for Arc<Py<PySizedValueBase>> {
-    fn size(&self) -> u64 {
+impl SizedValue<PyS> for Arc<Py<PySizedValueBase>> {
+    fn size(&self) -> PyS {
         Arc::as_ref(self).size()
     }
 }

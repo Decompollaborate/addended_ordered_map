@@ -6,7 +6,7 @@ use alloc::sync::Arc;
 
 use pyo3::prelude::*;
 
-use crate::python_bindings::PySizedValueBase;
+use crate::python_bindings::py_alias::{PyK, PyS, PyV};
 use crate::AddendedOrderedMap;
 
 #[pyclass(
@@ -16,7 +16,7 @@ use crate::AddendedOrderedMap;
 )]
 #[must_use]
 pub struct PyIntoIter {
-    inner: btree_map::IntoIter<u64, Arc<Py<PySizedValueBase>>>,
+    inner: btree_map::IntoIter<PyK, Arc<PyV>>,
 }
 
 #[pymethods]
@@ -25,7 +25,7 @@ impl PyIntoIter {
         slf
     }
 
-    pub fn __next__(mut slf: PyRefMut<Self>) -> Option<(u64, Py<PySizedValueBase>)> {
+    pub fn __next__(mut slf: PyRefMut<Self>) -> Option<(PyK, PyV)> {
         slf.inner.next().map(|(k, v)| {
             let new_v = Python::try_attach(|py| v.clone_ref(py)).unwrap();
             (k, new_v)
@@ -34,7 +34,7 @@ impl PyIntoIter {
 }
 
 impl PyIntoIter {
-    pub fn new(map: AddendedOrderedMap<u64, Arc<Py<PySizedValueBase>>, u64>) -> Self {
+    pub fn new(map: AddendedOrderedMap<PyK, Arc<PyV>, PyS>) -> Self {
         Self {
             inner: map.into_iter(),
         }
