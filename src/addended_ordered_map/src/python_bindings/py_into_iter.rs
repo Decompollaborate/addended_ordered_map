@@ -4,10 +4,11 @@
 use alloc::collections::btree_map;
 use alloc::sync::Arc;
 
+use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
+use crate::fallible::AddendedOrderedMapFallible;
 use crate::python_bindings::py_alias::{PyK, PyS, PyV};
-use crate::AddendedOrderedMap;
 
 #[pyclass(
     name = "AddendedOrderedMapIter",
@@ -25,16 +26,20 @@ impl PyIntoIter {
         slf
     }
 
-    pub fn __next__(mut slf: PyRefMut<Self>) -> Option<(PyK, PyV)> {
-        slf.inner.next().map(|(k, v)| {
-            let new_v = Python::try_attach(|py| v.clone_ref(py)).unwrap();
-            (k, new_v)
-        })
+    pub fn __next__(mut slf: PyRefMut<Self>) -> PyResult<Option<(PyK, PyV)>> {
+        slf.inner
+            .next()
+            .map(|(k, v)| {
+                let new_v = Python::try_attach(|py| v.clone_ref(py))
+                    .ok_or_else(|| PyRuntimeError::new_err("Internal error"))?;
+                Ok((k, new_v))
+            })
+            .transpose()
     }
 }
 
 impl PyIntoIter {
-    pub fn new(map: AddendedOrderedMap<PyK, Arc<PyV>, PyS>) -> Self {
+    pub fn new(map: AddendedOrderedMapFallible<PyK, Arc<PyV>, PyS>) -> Self {
         Self {
             inner: map.into_iter(),
         }

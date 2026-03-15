@@ -14,25 +14,26 @@ use ::polonius_the_crab::prelude::*;
 #[cfg(feature = "nightly")]
 use core::ops::Bound;
 
-use crate::{FindSettings, SizedValue};
+use super::SizedValueFallible;
+use crate::FindSettings;
 
 pub type Range<'a, K, V> = btree_map::Range<'a, K, V>;
 pub type RangeMut<'a, K, V> = btree_map::RangeMut<'a, K, V>;
 
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AddendedOrderedMap<K, V, SIZE>
+pub struct AddendedOrderedMapFallible<K, V, SIZE>
 where
     K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
+    V: SizedValueFallible<SIZE>,
 {
     inner: BTreeMap<K, V>,
     phantom: PhantomData<SIZE>,
 }
 
-impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
+impl<K, V, SIZE> AddendedOrderedMapFallible<K, V, SIZE>
 where
     K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
+    V: SizedValueFallible<SIZE>,
 {
     pub fn new() -> Self {
         Self {
@@ -50,95 +51,110 @@ where
     }
 }
 
-impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
+impl<K, V, SIZE> AddendedOrderedMapFallible<K, V, SIZE>
 where
     K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
+    V: SizedValueFallible<SIZE>,
 {
     #[must_use]
-    pub fn find(&self, key: &K, settings: FindSettings) -> Option<(K, &V)> {
+    pub fn find(&self, key: &K, settings: FindSettings) -> Result<Option<(K, &V)>, V::E> {
         if !settings.allow_addend {
-            self.inner.get(key).map(|v| (*key, v))
+            Ok(self.inner.get(key).map(|v| (*key, v)))
         } else {
             let mut range = self.inner.range(..=key);
 
-            let (other_key, v) = range.next_back()?;
+            let Some((other_key, v)) = range.next_back() else {
+                return Ok(None);
+            };
 
             let other_key = *other_key;
-            if &other_key == key || *key < other_key + v.size() {
+            Ok(if &other_key == key || *key < other_key + v.size()? {
                 Some((other_key, v))
             } else {
                 None
-            }
+            })
         }
     }
 
     #[must_use]
-    pub fn find_key(&self, key: &K, settings: FindSettings) -> Option<K> {
-        self.find(key, settings).map(|x| x.0)
+    pub fn find_key(&self, key: &K, settings: FindSettings) -> Result<Option<K>, V::E> {
+        self.find(key, settings).map(|x| x.map(|y| y.0))
     }
 
     #[must_use]
-    pub fn find_value(&self, key: &K, settings: FindSettings) -> Option<&V> {
-        self.find(key, settings).map(|x| x.1)
+    pub fn find_value(&self, key: &K, settings: FindSettings) -> Result<Option<&V>, V::E> {
+        self.find(key, settings).map(|x| x.map(|y| y.1))
     }
 
     #[must_use]
-    pub fn find_mut(&mut self, key: &K, settings: FindSettings) -> Option<(K, &mut V)> {
+    pub fn find_mut(
+        &mut self,
+        key: &K,
+        settings: FindSettings,
+    ) -> Result<Option<(K, &mut V)>, V::E> {
         if !settings.allow_addend {
-            self.inner.get_mut(key).map(|v| (*key, v))
+            Ok(self.inner.get_mut(key).map(|v| (*key, v)))
         } else {
             let mut range = self.inner.range_mut(..=key);
 
-            let (other_key, v) = range.next_back()?;
+            let Some((other_key, v)) = range.next_back() else {
+                return Ok(None);
+            };
+
             let other_key = *other_key;
-            if &other_key == key || *key < other_key + v.size() {
+            Ok(if &other_key == key || *key < other_key + v.size()? {
                 Some((other_key, v))
             } else {
                 None
-            }
+            })
         }
     }
 }
 
 #[cfg(not(feature = "nightly"))]
 fn add_impl<'slf, K, V, SIZE, F>(
-    mut slf: &'slf mut AddendedOrderedMap<K, V, SIZE>,
+    mut slf: &'slf mut AddendedOrderedMapFallible<K, V, SIZE>,
     key: &K,
     settings: FindSettings,
     default: F,
-) -> (&'slf mut V, bool)
+) -> Result<(&'slf mut V, bool), V::E>
 where
     K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
-    F: FnOnce() -> (K, V),
+    V: SizedValueFallible<SIZE>,
+    F: FnOnce() -> Result<(K, V), V::E>,
 {
     // TODO: get rid of the polonius stuff when the new borrow checker has been released.
 
-    polonius!(|slf| -> (&'polonius mut V, bool) {
-        if let Some((_k, v)) = slf.find_mut(key, settings) {
-            polonius_return!((v, false));
+    polonius!(|slf| -> Result<(&'polonius mut V, bool), V::E> {
+        let ret = match slf.find_mut(key, settings) {
+            Ok(r) => r,
+            Err(e) => {
+                polonius_return!(Err(e))
+            }
+        };
+        if let Some((_k, v)) = ret {
+            polonius_return!(Ok((v, false)));
         }
     });
 
-    let (k, v) = default();
+    let (k, v) = default()?;
     let entry = slf.inner.entry(k);
 
     let newly_created = matches!(entry, btree_map::Entry::Vacant(_));
-    (entry.or_insert(v), newly_created)
+    Ok((entry.or_insert(v), newly_created))
 }
 
 #[cfg(feature = "nightly")]
 fn add_impl<'slf, K, V, SIZE, F>(
-    slf: &'slf mut AddendedOrderedMap<K, V, SIZE>,
+    slf: &'slf mut AddendedOrderedMapFallible<K, V, SIZE>,
     key: &K,
     settings: FindSettings,
     default: F,
-) -> (&'slf mut V, bool)
+) -> Result<(&'slf mut V, bool), V::E>
 where
     K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
-    F: FnOnce() -> (K, V),
+    V: SizedValueFallible<SIZE>,
+    F: FnOnce() -> Result<(K, V), V::E>,
 {
     let mut cursor = slf.inner.upper_bound_mut(Bound::Included(key));
 
@@ -148,21 +164,21 @@ where
         } else if !settings.allow_addend {
             true
         } else {
-            *key >= *other_key + v.size()
+            *key >= *other_key + v.size()?
         }
     } else {
         true
     };
 
     if must_insert_new {
-        let (k, v) = default();
+        let (k, v) = default()?;
         cursor
             .insert_before(k, v)
             .expect("This should not be able to panic");
     }
 
     //let sym = unsafe { &mut *(cursor.peek_prev().unwrap().1 as *mut SymbolMetadata) };
-    (into_prev_and_next(cursor).0.unwrap().1, must_insert_new)
+    Ok((into_prev_and_next(cursor).0.unwrap().1, must_insert_new))
 }
 
 #[cfg(feature = "nightly")]
@@ -183,22 +199,22 @@ fn into_prev_and_next<'a, K, V>(
     (prev, next)
 }
 
-impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
+impl<K, V, SIZE> AddendedOrderedMapFallible<K, V, SIZE>
 where
     K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
+    V: SizedValueFallible<SIZE>,
 {
     pub fn find_mut_or_insert_with<F>(
         &mut self,
         key: K,
         settings: FindSettings,
         default: F,
-    ) -> (&mut V, bool)
+    ) -> Result<(&mut V, bool), V::E>
     where
         K: Copy,
-        F: FnOnce() -> V,
+        F: FnOnce() -> Result<V, V::E>,
     {
-        add_impl(self, &key, settings, || (key, default()))
+        add_impl(self, &key, settings, || Ok((key, default()?)))
     }
 
     pub fn find_mut_or_insert_with_key_value<F>(
@@ -206,18 +222,18 @@ where
         key: &K,
         settings: FindSettings,
         default: F,
-    ) -> (&mut V, bool)
+    ) -> Result<(&mut V, bool), V::E>
     where
-        F: FnOnce() -> (K, V),
+        F: FnOnce() -> Result<(K, V), V::E>,
     {
         add_impl(self, key, settings, default)
     }
 }
 
-impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
+impl<K, V, SIZE> AddendedOrderedMapFallible<K, V, SIZE>
 where
     K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
+    V: SizedValueFallible<SIZE>,
 {
     pub fn contains_key_exact(&self, key: &K) -> bool {
         self.inner.contains_key(key)
@@ -239,10 +255,10 @@ where
     }
 }
 
-impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
+impl<K, V, SIZE> AddendedOrderedMapFallible<K, V, SIZE>
 where
     K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
+    V: SizedValueFallible<SIZE>,
 {
     pub fn iter(&self) -> btree_map::Iter<'_, K, V> {
         self.inner.iter()
@@ -298,31 +314,31 @@ where
     }
 }
 
-impl<K, V, SIZE> fmt::Debug for AddendedOrderedMap<K, V, SIZE>
+impl<K, V, SIZE> fmt::Debug for AddendedOrderedMapFallible<K, V, SIZE>
 where
     K: fmt::Debug + Ord + Copy + Add<SIZE, Output = K>,
-    V: fmt::Debug + SizedValue<SIZE>,
+    V: fmt::Debug + SizedValueFallible<SIZE>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Manually implement Debug to hide the `inner` indirection
-        write!(f, "AddendedOrderedMap {:?}", self.inner)
+        write!(f, "AddendedOrderedMapFallible {:?}", self.inner)
     }
 }
 
-impl<K, V, SIZE> Default for AddendedOrderedMap<K, V, SIZE>
+impl<K, V, SIZE> Default for AddendedOrderedMapFallible<K, V, SIZE>
 where
     K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
+    V: SizedValueFallible<SIZE>,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, K, V, SIZE> IntoIterator for &'a AddendedOrderedMap<K, V, SIZE>
+impl<'a, K, V, SIZE> IntoIterator for &'a AddendedOrderedMapFallible<K, V, SIZE>
 where
     K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
+    V: SizedValueFallible<SIZE>,
 {
     type Item = (&'a K, &'a V);
     type IntoIter = btree_map::Iter<'a, K, V>;
@@ -333,7 +349,7 @@ where
 }
 
 /*
-impl<'a, K, V, SIZE> IntoIterator for &'a mut AddendedOrderedMap<K, V, SIZE>
+impl<'a, K, V, SIZE> IntoIterator for &'a mut AddendedOrderedMapFallible<K, V, SIZE>
 {
     type Item = (&'a K, &'a mut V);
     type IntoIter = btree_map::IterMut<'a, K, V>;
@@ -344,10 +360,10 @@ impl<'a, K, V, SIZE> IntoIterator for &'a mut AddendedOrderedMap<K, V, SIZE>
 }
 */
 
-impl<K, V, SIZE> IntoIterator for AddendedOrderedMap<K, V, SIZE>
+impl<K, V, SIZE> IntoIterator for AddendedOrderedMapFallible<K, V, SIZE>
 where
     K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValue<SIZE>,
+    V: SizedValueFallible<SIZE>,
 {
     type Item = (K, V);
     type IntoIter = btree_map::IntoIter<K, V>;
@@ -361,36 +377,42 @@ where
 mod tests {
     use super::*;
 
-    impl SizedValue<u32> for Option<u32> {
-        fn size(&self) -> u32 {
-            self.unwrap_or(1)
+    impl SizedValueFallible<u32> for Option<u32> {
+        type E = core::convert::Infallible;
+
+        fn size(&self) -> Result<u32, Self::E> {
+            Ok(self.unwrap_or(1))
         }
     }
 
     #[test]
     fn check_bounds() {
-        let mut map: AddendedOrderedMap<u32, Option<u32>, u32> = AddendedOrderedMap::new();
+        let mut map: AddendedOrderedMapFallible<u32, Option<u32>, u32> =
+            AddendedOrderedMapFallible::new();
 
-        map.find_mut_or_insert_with(0x100C, FindSettings::new(true), || None);
-        map.find_mut_or_insert_with(0x1000, FindSettings::new(true), || Some(4));
-        map.find_mut_or_insert_with(0x1004, FindSettings::new(true), || Some(4));
+        map.find_mut_or_insert_with(0x100C, FindSettings::new(true), || Ok(None))
+            .unwrap();
+        map.find_mut_or_insert_with(0x1000, FindSettings::new(true), || Ok(Some(4)))
+            .unwrap();
+        map.find_mut_or_insert_with(0x1004, FindSettings::new(true), || Ok(Some(4)))
+            .unwrap();
 
         assert_eq!(
-            Some((0x1000, &Some(4))),
+            Ok(Some((0x1000, &Some(4)))),
             map.find(&0x1000, FindSettings::new(true)),
         );
 
         assert_eq!(
-            Some((0x1000, &Some(4))),
+            Ok(Some((0x1000, &Some(4)))),
             map.find(&0x1002, FindSettings::new(true)),
         );
 
-        assert_eq!(None, map.find(&0x0F00, FindSettings::new(true)),);
+        assert_eq!(Ok(None), map.find(&0x0F00, FindSettings::new(true)),);
 
-        assert_eq!(None, map.find(&0x2000, FindSettings::new(true)),);
+        assert_eq!(Ok(None), map.find(&0x2000, FindSettings::new(true)),);
 
-        assert_eq!(None, map.find(&0x1002, FindSettings::new(false)),);
+        assert_eq!(Ok(None), map.find(&0x1002, FindSettings::new(false)),);
 
-        assert_eq!(None, map.find(&0x1008, FindSettings::new(true)),);
+        assert_eq!(Ok(None), map.find(&0x1008, FindSettings::new(true)),);
     }
 }

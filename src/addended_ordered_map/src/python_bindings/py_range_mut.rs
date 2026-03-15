@@ -4,10 +4,11 @@
 use alloc::sync::Arc;
 use alloc::vec;
 
+use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
+use crate::fallible::AddendedOrderedMapFallible;
 use crate::python_bindings::py_alias::{PyK, PyS, PyV};
-use crate::AddendedOrderedMap;
 
 #[pyclass(
     name = "AddendedOrderedMapRange",
@@ -28,17 +29,21 @@ impl PyRangeMut {
         slf
     }
 
-    pub fn __next__(mut slf: PyRefMut<Self>) -> Option<(PyK, PyV)> {
-        slf.inner.next().map(|(k, v)| {
-            let new_v = Python::try_attach(|py| v.clone_ref(py)).unwrap();
-            (k, new_v)
-        })
+    pub fn __next__(mut slf: PyRefMut<Self>) -> PyResult<Option<(PyK, PyV)>> {
+        slf.inner
+            .next()
+            .map(|(k, v)| {
+                let new_v = Python::try_attach(|py| v.clone_ref(py))
+                    .ok_or_else(|| PyRuntimeError::new_err("Internal error"))?;
+                Ok((k, new_v))
+            })
+            .transpose()
     }
 }
 
 impl PyRangeMut {
     pub fn new(
-        map: &mut AddendedOrderedMap<PyK, Arc<PyV>, PyS>,
+        map: &mut AddendedOrderedMapFallible<PyK, Arc<PyV>, PyS>,
         left: Option<PyK>,
         right: Option<PyK>,
     ) -> Self {

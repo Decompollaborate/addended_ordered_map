@@ -3,12 +3,12 @@
 
 use alloc::sync::Arc;
 
-use pyo3::exceptions::PyNotImplementedError;
+use pyo3::exceptions::{PyNotImplementedError, PyRuntimeError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyTuple};
 
+use crate::fallible::SizedValueFallible;
 use crate::python_bindings::py_alias::PyS;
-use crate::SizedValue;
 
 #[pyclass(
     name = "SizedValue",
@@ -38,18 +38,24 @@ impl PySizedValueBase {
     }
 }
 
-impl SizedValue<PyS> for Py<PySizedValueBase> {
-    fn size(&self) -> PyS {
+impl SizedValueFallible<PyS> for Py<PySizedValueBase> {
+    type E = PyErr;
+
+    fn size(&self) -> Result<PyS, Self::E> {
         Python::try_attach(|py| {
-            let size = self.call_method0(py, "get_size").unwrap();
-            size.extract(py).unwrap()
+            let size = self.call_method0(py, "get_size")?;
+            let s: u64 = size.extract(py)?;
+            Ok(s)
         })
-        .unwrap()
+        .ok_or_else(|| PyRuntimeError::new_err("Error when adquiring the GIL"))
+        .flatten()
     }
 }
 
-impl SizedValue<PyS> for Arc<Py<PySizedValueBase>> {
-    fn size(&self) -> PyS {
+impl SizedValueFallible<PyS> for Arc<Py<PySizedValueBase>> {
+    type E = PyErr;
+
+    fn size(&self) -> Result<PyS, Self::E> {
         Arc::as_ref(self).size()
     }
 }

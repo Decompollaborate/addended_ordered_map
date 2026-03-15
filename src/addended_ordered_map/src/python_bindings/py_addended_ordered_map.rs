@@ -7,15 +7,15 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyInt;
 
+use crate::fallible::AddendedOrderedMapFallible;
 use crate::python_bindings::py_alias::{PyK, PyS, PyV};
 use crate::python_bindings::{PyFindSettings, PyIntoIter, PyRangeMut};
-use crate::AddendedOrderedMap;
 
 #[pyclass(name = "AddendedOrderedMap", module = "addended_ordered_map", generic)]
 pub struct PyAddendedOrderedMap {
     // We use Arc because Py can't be just cloned
     // https://pyo3.rs/v0.28.2/migration.html#pyclone-is-now-gated-behind-the-py-clone-feature
-    inner: AddendedOrderedMap<PyK, Arc<PyV>, PyS>,
+    inner: AddendedOrderedMapFallible<PyK, Arc<PyV>, PyS>,
 }
 
 #[pymethods]
@@ -23,7 +23,7 @@ impl PyAddendedOrderedMap {
     #[new]
     pub fn new() -> Self {
         Self {
-            inner: AddendedOrderedMap::new(),
+            inner: AddendedOrderedMapFallible::new(),
         }
     }
 
@@ -43,7 +43,7 @@ impl PyAddendedOrderedMap {
     ) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
         let find_settings = settings.into_inner();
 
-        if let Some((k, v)) = self.inner.find(&key, find_settings) {
+        if let Some((k, v)) = self.inner.find(&key, find_settings)? {
             let k2 = Python::try_attach(|py| k.into_pyobject(py).map(|x| x.unbind()))
                 .ok_or_else(|| PyRuntimeError::new_err("Internal conversion error"))??;
 
@@ -84,7 +84,7 @@ impl PyAddendedOrderedMap {
 
         let (v, newly_created) = self
             .inner
-            .find_mut_or_insert_with(key, find_settings, || Arc::new(new_value));
+            .find_mut_or_insert_with(key, find_settings, || Ok(Arc::new(new_value)))?;
         Ok((v, newly_created))
     }
 
@@ -100,10 +100,10 @@ impl PyAddendedOrderedMap {
 
         let (v, newly_created) = self.inner.find_mut_or_insert_with(key, find_settings, || {
             // call a callable python object/function/lambda/etc
-            let result = new_default.call0().unwrap();
-            let casted = result.cast().map(|x| x.clone().unbind());
-            Arc::new(casted.unwrap())
-        });
+            let result = new_default.call0()?;
+            let casted = result.cast().map(|x| x.clone().unbind())?;
+            Ok(Arc::new(casted))
+        })?;
         Ok((v, newly_created))
     }
 
@@ -162,39 +162,39 @@ impl PyAddendedOrderedMap {
 
     // values
 
-    pub fn __repr__<'py>(&self, py: Python<'py>) -> String {
+    pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<String> {
         let mut out = String::new();
-        out += "AddendedOrderedMap({";
-        out += self.repr_body(py).as_str();
+        out += "AddendedOrderedMapFallible({";
+        out += self.repr_body(py)?.as_str();
         out += "})";
-        out
+        Ok(out)
     }
 
-    pub fn __str__<'py>(&self, py: Python<'py>) -> String {
+    pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<String> {
         self.__repr__(py)
     }
 }
 
 impl PyAddendedOrderedMap {
-    pub fn repr_body<'py>(&self, py: Python<'py>) -> String {
+    pub fn repr_body<'py>(&self, py: Python<'py>) -> PyResult<String> {
         let mut body = String::new();
         let mut iter = self.inner.iter();
 
         // special case the first case to allow adding the comma in the loop
         if let Some((k, v)) = iter.next() {
-            let v_repr = v.call_method0(py, "__repr__").unwrap();
+            let v_repr = v.call_method0(py, "__repr__")?;
 
             body += &format!("{k}: {v_repr}");
         } else {
-            return body;
+            return Ok(body);
         }
 
         for (k, v) in iter {
-            let v_repr = v.call_method0(py, "__repr__").unwrap();
+            let v_repr = v.call_method0(py, "__repr__")?;
 
             body += &format!(", {k}: {v_repr}");
         }
 
-        body
+        Ok(body)
     }
 }
