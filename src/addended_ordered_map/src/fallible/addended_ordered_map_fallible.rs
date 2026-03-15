@@ -56,7 +56,7 @@ where
     K: Ord + Copy + Add<SIZE, Output = K>,
     V: SizedValueFallible<SIZE>,
 {
-    #[must_use]
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
     pub fn find(&self, key: &K, settings: FindSettings) -> Result<Option<(K, &V)>, V::E> {
         if !settings.allow_addend {
             Ok(self.inner.get(key).map(|v| (*key, v)))
@@ -76,17 +76,17 @@ where
         }
     }
 
-    #[must_use]
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
     pub fn find_key(&self, key: &K, settings: FindSettings) -> Result<Option<K>, V::E> {
         self.find(key, settings).map(|x| x.map(|y| y.0))
     }
 
-    #[must_use]
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
     pub fn find_value(&self, key: &K, settings: FindSettings) -> Result<Option<&V>, V::E> {
         self.find(key, settings).map(|x| x.map(|y| y.1))
     }
 
-    #[must_use]
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
     pub fn find_mut(
         &mut self,
         key: &K,
@@ -376,14 +376,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    impl SizedValueFallible<u32> for Option<u32> {
-        type E = core::convert::Infallible;
-
-        fn size(&self) -> Result<u32, Self::E> {
-            Ok(self.unwrap_or(1))
-        }
-    }
 
     #[test]
     fn check_bounds() {

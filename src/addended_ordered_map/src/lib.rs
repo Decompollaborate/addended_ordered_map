@@ -12,8 +12,10 @@ extern crate alloc;
 
 pub mod fallible;
 mod find_settings;
+mod infallible;
 
 pub use find_settings::FindSettings;
+pub use infallible::*;
 
 #[cfg(feature = "pyo3")]
 mod python_bindings;
