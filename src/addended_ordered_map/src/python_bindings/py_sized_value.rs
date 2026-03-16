@@ -38,10 +38,8 @@ impl PySizedValueBase {
     }
 }
 
-impl SizedValueFallible<PyS> for Py<PySizedValueBase> {
-    type E = PyErr;
-
-    fn size(&self) -> Result<PyS, Self::E> {
+impl SizedValueFallible<PyS, PyErr> for Py<PySizedValueBase> {
+    fn size(&self) -> Result<PyS, PyErr> {
         Python::try_attach(|py| {
             let size = self.call_method0(py, "get_size")?;
             let s: u64 = size.extract(py)?;
@@ -52,10 +50,8 @@ impl SizedValueFallible<PyS> for Py<PySizedValueBase> {
     }
 }
 
-impl SizedValueFallible<PyS> for Arc<Py<PySizedValueBase>> {
-    type E = PyErr;
-
-    fn size(&self) -> Result<PyS, Self::E> {
+impl SizedValueFallible<PyS, PyErr> for Arc<Py<PySizedValueBase>> {
+    fn size(&self) -> Result<PyS, PyErr> {
         Arc::as_ref(self).size()
     }
 }

@@ -2,11 +2,7 @@
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
 use alloc::collections::btree_map::{self, BTreeMap};
-use core::{
-    fmt,
-    marker::PhantomData,
-    ops::{Add, RangeBounds},
-};
+use core::{fmt, marker::PhantomData, ops::RangeBounds};
 
 #[cfg(not(feature = "nightly"))]
 use ::polonius_the_crab::prelude::*;
@@ -14,26 +10,25 @@ use ::polonius_the_crab::prelude::*;
 #[cfg(feature = "nightly")]
 use core::ops::Bound;
 
-use super::SizedValueFallible;
+use super::{AddendableKeyFallible, SizedValueFallible};
 use crate::FindSettings;
 
 pub type Range<'a, K, V> = btree_map::Range<'a, K, V>;
 pub type RangeMut<'a, K, V> = btree_map::RangeMut<'a, K, V>;
 
-#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AddendedOrderedMapFallible<K, V, SIZE>
+pub struct AddendedOrderedMapFallible<K, V, SIZE, E>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValueFallible<SIZE>,
+    K: Ord + AddendableKeyFallible<SIZE, E>,
+    V: SizedValueFallible<SIZE, E>,
 {
     inner: BTreeMap<K, V>,
-    phantom: PhantomData<SIZE>,
+    phantom: PhantomData<(SIZE, E)>,
 }
 
-impl<K, V, SIZE> AddendedOrderedMapFallible<K, V, SIZE>
+impl<K, V, SIZE, E> AddendedOrderedMapFallible<K, V, SIZE, E>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValueFallible<SIZE>,
+    K: Ord + AddendableKeyFallible<SIZE, E>,
+    V: SizedValueFallible<SIZE, E>,
 {
     pub fn new() -> Self {
         Self {
@@ -51,79 +46,75 @@ where
     }
 }
 
-impl<K, V, SIZE> AddendedOrderedMapFallible<K, V, SIZE>
+impl<K, V, SIZE, E> AddendedOrderedMapFallible<K, V, SIZE, E>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValueFallible<SIZE>,
+    K: Ord + AddendableKeyFallible<SIZE, E>,
+    V: SizedValueFallible<SIZE, E>,
 {
     #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
-    pub fn find(&self, key: &K, settings: FindSettings) -> Result<Option<(&K, &V)>, V::E> {
+    pub fn find(&self, key: &K, settings: FindSettings) -> Result<Option<(&K, &V)>, E> {
         let mut range = self.inner.range(..=key);
 
-        let Some((other_key, v)) = range.next_back() else {
-            return Ok(None);
-        };
-
-        if other_key == key {
-            return Ok(Some((other_key, v)));
-        }
-
-        Ok(if settings.allow_addend && *key < *other_key + v.size()? {
-            Some((other_key, v))
+        let ret = if let Some((other_key, v)) = range.next_back() {
+            if other_key == key
+                || (settings.allow_addend && key < &other_key.add_size(&v.size()?)?)
+            {
+                Some((other_key, v))
+            } else {
+                None
+            }
         } else {
             None
-        })
+        };
+
+        Ok(ret)
     }
 
     #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
-    pub fn find_key(&self, key: &K, settings: FindSettings) -> Result<Option<&K>, V::E> {
+    pub fn find_key(&self, key: &K, settings: FindSettings) -> Result<Option<&K>, E> {
         self.find(key, settings).map(|x| x.map(|y| y.0))
     }
 
     #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
-    pub fn find_value(&self, key: &K, settings: FindSettings) -> Result<Option<&V>, V::E> {
+    pub fn find_value(&self, key: &K, settings: FindSettings) -> Result<Option<&V>, E> {
         self.find(key, settings).map(|x| x.map(|y| y.1))
     }
 
     #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
-    pub fn find_mut(
-        &mut self,
-        key: &K,
-        settings: FindSettings,
-    ) -> Result<Option<(&K, &mut V)>, V::E> {
+    pub fn find_mut(&mut self, key: &K, settings: FindSettings) -> Result<Option<(&K, &mut V)>, E> {
         let mut range = self.inner.range_mut(..=key);
 
-        let Some((other_key, v)) = range.next_back() else {
-            return Ok(None);
-        };
-
-        if other_key == key {
-            return Ok(Some((other_key, v)));
-        }
-
-        Ok(if settings.allow_addend && *key < *other_key + v.size()? {
-            Some((other_key, v))
+        let ret = if let Some((other_key, v)) = range.next_back() {
+            if other_key == key
+                || (settings.allow_addend && key < &other_key.add_size(&v.size()?)?)
+            {
+                Some((other_key, v))
+            } else {
+                None
+            }
         } else {
             None
-        })
+        };
+
+        Ok(ret)
     }
 }
 
 #[cfg(not(feature = "nightly"))]
-fn add_impl<'slf, K, V, SIZE, F>(
-    mut slf: &'slf mut AddendedOrderedMapFallible<K, V, SIZE>,
+fn add_impl<'slf, K, V, SIZE, E, F>(
+    mut slf: &'slf mut AddendedOrderedMapFallible<K, V, SIZE, E>,
     key: &K,
     settings: FindSettings,
     default: F,
-) -> Result<(&'slf mut V, bool), V::E>
+) -> Result<(&'slf mut V, bool), E>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValueFallible<SIZE>,
-    F: FnOnce() -> Result<(K, V), V::E>,
+    K: Ord + AddendableKeyFallible<SIZE, E>,
+    V: SizedValueFallible<SIZE, E>,
+    F: FnOnce() -> Result<(K, V), E>,
 {
     // TODO: get rid of the polonius stuff when the new borrow checker has been released.
 
-    polonius!(|slf| -> Result<(&'polonius mut V, bool), V::E> {
+    polonius!(|slf| -> Result<(&'polonius mut V, bool), E> {
         let ret = match slf.find_mut(key, settings) {
             Ok(r) => r,
             Err(e) => {
@@ -143,16 +134,16 @@ where
 }
 
 #[cfg(feature = "nightly")]
-fn add_impl<'slf, K, V, SIZE, F>(
-    slf: &'slf mut AddendedOrderedMapFallible<K, V, SIZE>,
+fn add_impl<'slf, K, V, SIZE, E, F>(
+    slf: &'slf mut AddendedOrderedMapFallible<K, V, SIZE, E>,
     key: &K,
     settings: FindSettings,
     default: F,
-) -> Result<(&'slf mut V, bool), V::E>
+) -> Result<(&'slf mut V, bool), E>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValueFallible<SIZE>,
-    F: FnOnce() -> Result<(K, V), V::E>,
+    K: Ord + AddendableKeyFallible<SIZE, E>,
+    V: SizedValueFallible<SIZE, E>,
+    F: FnOnce() -> Result<(K, V), E>,
 {
     let mut cursor = slf.inner.upper_bound_mut(Bound::Included(key));
 
@@ -162,7 +153,7 @@ where
         } else if !settings.allow_addend {
             true
         } else {
-            *key >= *other_key + v.size()?
+            key >= &other_key.add_size(&v.size()?)?
         }
     } else {
         true
@@ -197,20 +188,20 @@ fn into_prev_and_next<'a, K, V>(
     (prev, next)
 }
 
-impl<K, V, SIZE> AddendedOrderedMapFallible<K, V, SIZE>
+impl<K, V, SIZE, E> AddendedOrderedMapFallible<K, V, SIZE, E>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValueFallible<SIZE>,
+    K: Ord + AddendableKeyFallible<SIZE, E>,
+    V: SizedValueFallible<SIZE, E>,
 {
     pub fn find_mut_or_insert_with<F>(
         &mut self,
         key: K,
         settings: FindSettings,
         default: F,
-    ) -> Result<(&mut V, bool), V::E>
+    ) -> Result<(&mut V, bool), E>
     where
         K: Copy,
-        F: FnOnce() -> Result<V, V::E>,
+        F: FnOnce() -> Result<V, E>,
     {
         add_impl(self, &key, settings, || Ok((key, default()?)))
     }
@@ -220,18 +211,18 @@ where
         key: &K,
         settings: FindSettings,
         default: F,
-    ) -> Result<(&mut V, bool), V::E>
+    ) -> Result<(&mut V, bool), E>
     where
-        F: FnOnce() -> Result<(K, V), V::E>,
+        F: FnOnce() -> Result<(K, V), E>,
     {
         add_impl(self, key, settings, default)
     }
 }
 
-impl<K, V, SIZE> AddendedOrderedMapFallible<K, V, SIZE>
+impl<K, V, SIZE, E> AddendedOrderedMapFallible<K, V, SIZE, E>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValueFallible<SIZE>,
+    K: Ord + AddendableKeyFallible<SIZE, E>,
+    V: SizedValueFallible<SIZE, E>,
 {
     pub fn contains_key_exact(&self, key: &K) -> bool {
         self.inner.contains_key(key)
@@ -253,10 +244,10 @@ where
     }
 }
 
-impl<K, V, SIZE> AddendedOrderedMapFallible<K, V, SIZE>
+impl<K, V, SIZE, E> AddendedOrderedMapFallible<K, V, SIZE, E>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValueFallible<SIZE>,
+    K: Ord + AddendableKeyFallible<SIZE, E>,
+    V: SizedValueFallible<SIZE, E>,
 {
     pub fn iter(&self) -> btree_map::Iter<'_, K, V> {
         self.inner.iter()
@@ -312,10 +303,10 @@ where
     }
 }
 
-impl<K, V, SIZE> fmt::Debug for AddendedOrderedMapFallible<K, V, SIZE>
+impl<K, V, SIZE, E> fmt::Debug for AddendedOrderedMapFallible<K, V, SIZE, E>
 where
-    K: fmt::Debug + Ord + Copy + Add<SIZE, Output = K>,
-    V: fmt::Debug + SizedValueFallible<SIZE>,
+    K: fmt::Debug + Ord + AddendableKeyFallible<SIZE, E>,
+    V: fmt::Debug + SizedValueFallible<SIZE, E>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Manually implement Debug to hide the `inner` indirection
@@ -323,20 +314,87 @@ where
     }
 }
 
-impl<K, V, SIZE> Default for AddendedOrderedMapFallible<K, V, SIZE>
+impl<K, V, SIZE, E> Clone for AddendedOrderedMapFallible<K, V, SIZE, E>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValueFallible<SIZE>,
+    K: Clone + Ord + AddendableKeyFallible<SIZE, E>,
+    V: Clone + SizedValueFallible<SIZE, E>,
+{
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+            phantom: self.phantom,
+        }
+    }
+}
+
+impl<K, V, SIZE, E> core::hash::Hash for AddendedOrderedMapFallible<K, V, SIZE, E>
+where
+    K: core::hash::Hash + Ord + AddendableKeyFallible<SIZE, E>,
+    V: core::hash::Hash + SizedValueFallible<SIZE, E>,
+{
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.inner.hash(state);
+        self.phantom.hash(state);
+    }
+}
+
+impl<K, V, SIZE, E> PartialEq for AddendedOrderedMapFallible<K, V, SIZE, E>
+where
+    K: PartialEq + Ord + AddendableKeyFallible<SIZE, E>,
+    V: PartialEq + SizedValueFallible<SIZE, E>,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner && self.phantom == other.phantom
+    }
+}
+
+impl<K, V, SIZE, E> Eq for AddendedOrderedMapFallible<K, V, SIZE, E>
+where
+    K: Eq + Ord + AddendableKeyFallible<SIZE, E>,
+    V: Eq + SizedValueFallible<SIZE, E>,
+{
+}
+
+impl<K, V, SIZE, E> PartialOrd for AddendedOrderedMapFallible<K, V, SIZE, E>
+where
+    K: PartialOrd + Ord + AddendableKeyFallible<SIZE, E>,
+    V: PartialOrd + SizedValueFallible<SIZE, E>,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        match self.inner.partial_cmp(&other.inner) {
+            Some(core::cmp::Ordering::Equal) => {}
+            ord => return ord,
+        }
+        self.phantom.partial_cmp(&other.phantom)
+    }
+}
+
+impl<K, V, SIZE, E> Ord for AddendedOrderedMapFallible<K, V, SIZE, E>
+where
+    K: Ord + AddendableKeyFallible<SIZE, E>,
+    V: Ord + SizedValueFallible<SIZE, E>,
+{
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.inner
+            .cmp(&other.inner)
+            .then_with(|| self.phantom.cmp(&other.phantom))
+    }
+}
+
+impl<K, V, SIZE, E> Default for AddendedOrderedMapFallible<K, V, SIZE, E>
+where
+    K: Ord + AddendableKeyFallible<SIZE, E>,
+    V: SizedValueFallible<SIZE, E>,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, K, V, SIZE> IntoIterator for &'a AddendedOrderedMapFallible<K, V, SIZE>
+impl<'a, K, V, SIZE, E> IntoIterator for &'a AddendedOrderedMapFallible<K, V, SIZE, E>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValueFallible<SIZE>,
+    K: Ord + AddendableKeyFallible<SIZE, E>,
+    V: SizedValueFallible<SIZE, E>,
 {
     type Item = (&'a K, &'a V);
     type IntoIter = btree_map::Iter<'a, K, V>;
@@ -347,7 +405,7 @@ where
 }
 
 /*
-impl<'a, K, V, SIZE> IntoIterator for &'a mut AddendedOrderedMapFallible<K, V, SIZE>
+impl<'a, K, V, SIZE> IntoIterator for &'a mut AddendedOrderedMapFallible<K, V, SIZE, E>
 {
     type Item = (&'a K, &'a mut V);
     type IntoIter = btree_map::IterMut<'a, K, V>;
@@ -358,10 +416,10 @@ impl<'a, K, V, SIZE> IntoIterator for &'a mut AddendedOrderedMapFallible<K, V, S
 }
 */
 
-impl<K, V, SIZE> IntoIterator for AddendedOrderedMapFallible<K, V, SIZE>
+impl<K, V, SIZE, E> IntoIterator for AddendedOrderedMapFallible<K, V, SIZE, E>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
-    V: SizedValueFallible<SIZE>,
+    K: Ord + AddendableKeyFallible<SIZE, E>,
+    V: SizedValueFallible<SIZE, E>,
 {
     type Item = (K, V);
     type IntoIter = btree_map::IntoIter<K, V>;
@@ -373,11 +431,13 @@ where
 
 #[cfg(test)]
 mod tests {
+    use core::convert::Infallible;
+
     use super::*;
 
     #[test]
     fn check_bounds() {
-        let mut map: AddendedOrderedMapFallible<u32, Option<u32>, u32> =
+        let mut map: AddendedOrderedMapFallible<u32, Option<u32>, u32, Infallible> =
             AddendedOrderedMapFallible::new();
 
         map.find_mut_or_insert_with(0x100C, FindSettings::new(true), || Ok(None))

@@ -43,7 +43,7 @@ impl PyRangeMut {
 
 impl PyRangeMut {
     pub fn new(
-        map: &mut AddendedOrderedMapFallible<PyK, Arc<PyV>, PyS>,
+        map: &mut AddendedOrderedMapFallible<PyK, Arc<PyV>, PyS, PyErr>,
         left: Option<PyK>,
         right: Option<PyK>,
     ) -> Self {

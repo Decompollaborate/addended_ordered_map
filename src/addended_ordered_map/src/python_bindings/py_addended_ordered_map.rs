@@ -15,7 +15,7 @@ use crate::python_bindings::{PyFindSettings, PyIntoIter, PyRangeMut};
 pub struct PyAddendedOrderedMap {
     // We use Arc because Py can't be just cloned
     // https://pyo3.rs/v0.28.2/migration.html#pyclone-is-now-gated-behind-the-py-clone-feature
-    inner: AddendedOrderedMapFallible<PyK, Arc<PyV>, PyS>,
+    inner: AddendedOrderedMapFallible<PyK, Arc<PyV>, PyS, PyErr>,
 }
 
 #[pymethods]

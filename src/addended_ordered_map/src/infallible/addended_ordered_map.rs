@@ -2,30 +2,26 @@
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
 use alloc::collections::btree_map;
-use core::{
-    fmt,
-    ops::{Add, RangeBounds},
-};
+use core::{convert::Infallible, fmt, ops::RangeBounds};
 
-use super::SizedValue;
+use super::{AddendableKey, SizedValue};
 use crate::fallible::AddendedOrderedMapFallible;
 use crate::FindSettings;
 
 pub type Range<'a, K, V> = btree_map::Range<'a, K, V>;
 pub type RangeMut<'a, K, V> = btree_map::RangeMut<'a, K, V>;
 
-#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
+    K: Ord + AddendableKey<SIZE>,
     V: SizedValue<SIZE>,
 {
-    inner: AddendedOrderedMapFallible<K, V, SIZE>,
+    inner: AddendedOrderedMapFallible<K, V, SIZE, Infallible>,
 }
 
 impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
+    K: Ord + AddendableKey<SIZE>,
     V: SizedValue<SIZE>,
 {
     pub fn new() -> Self {
@@ -45,7 +41,7 @@ where
 
 impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
+    K: Ord + AddendableKey<SIZE>,
     V: SizedValue<SIZE>,
 {
     #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
@@ -79,7 +75,7 @@ where
 
 impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
+    K: Ord + AddendableKey<SIZE>,
     V: SizedValue<SIZE>,
 {
     pub fn find_mut_or_insert_with<F>(
@@ -114,7 +110,7 @@ where
 
 impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
+    K: Ord + AddendableKey<SIZE>,
     V: SizedValue<SIZE>,
 {
     pub fn contains_key_exact(&self, key: &K) -> bool {
@@ -139,7 +135,7 @@ where
 
 impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
+    K: Ord + AddendableKey<SIZE>,
     V: SizedValue<SIZE>,
 {
     pub fn iter(&self) -> btree_map::Iter<'_, K, V> {
@@ -198,7 +194,7 @@ where
 
 impl<K, V, SIZE> fmt::Debug for AddendedOrderedMap<K, V, SIZE>
 where
-    K: fmt::Debug + Ord + Copy + Add<SIZE, Output = K>,
+    K: fmt::Debug + Ord + AddendableKey<SIZE>,
     V: fmt::Debug + SizedValue<SIZE>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -207,9 +203,68 @@ where
     }
 }
 
+impl<K, V, SIZE> Clone for AddendedOrderedMap<K, V, SIZE>
+where
+    K: Clone + Ord + AddendableKey<SIZE>,
+    V: Clone + SizedValue<SIZE>,
+{
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+impl<K, V, SIZE> core::hash::Hash for AddendedOrderedMap<K, V, SIZE>
+where
+    K: core::hash::Hash + Ord + AddendableKey<SIZE>,
+    V: core::hash::Hash + SizedValue<SIZE>,
+{
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.inner.hash(state);
+    }
+}
+
+impl<K, V, SIZE> PartialEq for AddendedOrderedMap<K, V, SIZE>
+where
+    K: PartialEq + Ord + AddendableKey<SIZE>,
+    V: PartialEq + SizedValue<SIZE>,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+}
+
+impl<K, V, SIZE> Eq for AddendedOrderedMap<K, V, SIZE>
+where
+    K: Eq + Ord + AddendableKey<SIZE>,
+    V: Eq + SizedValue<SIZE>,
+{
+}
+
+impl<K, V, SIZE> PartialOrd for AddendedOrderedMap<K, V, SIZE>
+where
+    K: PartialOrd + Ord + AddendableKey<SIZE>,
+    V: PartialOrd + SizedValue<SIZE>,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        self.inner.partial_cmp(&other.inner)
+    }
+}
+
+impl<K, V, SIZE> Ord for AddendedOrderedMap<K, V, SIZE>
+where
+    K: Ord + AddendableKey<SIZE>,
+    V: Ord + SizedValue<SIZE>,
+{
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.inner.cmp(&other.inner)
+    }
+}
+
 impl<K, V, SIZE> Default for AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
+    K: Ord + AddendableKey<SIZE>,
     V: SizedValue<SIZE>,
 {
     fn default() -> Self {
@@ -219,7 +274,7 @@ where
 
 impl<'a, K, V, SIZE> IntoIterator for &'a AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
+    K: Ord + AddendableKey<SIZE>,
     V: SizedValue<SIZE>,
 {
     type Item = (&'a K, &'a V);
@@ -244,7 +299,7 @@ impl<'a, K, V, SIZE> IntoIterator for &'a mut AddendedOrderedMap<K, V, SIZE>
 
 impl<K, V, SIZE> IntoIterator for AddendedOrderedMap<K, V, SIZE>
 where
-    K: Ord + Copy + Add<SIZE, Output = K>,
+    K: Ord + AddendableKey<SIZE>,
     V: SizedValue<SIZE>,
 {
     type Item = (K, V);

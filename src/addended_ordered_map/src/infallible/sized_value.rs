@@ -9,6 +9,15 @@ pub trait SizedValue<SIZE> {
     fn size(&self) -> SIZE;
 }
 
+impl<T, S> SizedValueFallible<S, Infallible> for T
+where
+    T: SizedValue<S>,
+{
+    fn size(&self) -> Result<S, Infallible> {
+        Ok(SizedValue::size(self))
+    }
+}
+
 // TODO: consider removing?
 impl<S> SizedValue<S> for S
 where
@@ -16,16 +25,5 @@ where
 {
     fn size(&self) -> S {
         *self
-    }
-}
-
-impl<T, S> SizedValueFallible<S> for T
-where
-    T: SizedValue<S>,
-{
-    type E = Infallible;
-
-    fn size(&self) -> Result<S, Self::E> {
-        Ok(SizedValue::size(self))
     }
 }

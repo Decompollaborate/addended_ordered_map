@@ -39,7 +39,7 @@ impl PyIntoIter {
 }
 
 impl PyIntoIter {
-    pub fn new(map: AddendedOrderedMapFallible<PyK, Arc<PyV>, PyS>) -> Self {
+    pub fn new(map: AddendedOrderedMapFallible<PyK, Arc<PyV>, PyS, PyErr>) -> Self {
         Self {
             inner: map.into_iter(),
         }
