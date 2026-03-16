@@ -57,27 +57,26 @@ where
     V: SizedValueFallible<SIZE>,
 {
     #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
-    pub fn find(&self, key: &K, settings: FindSettings) -> Result<Option<(K, &V)>, V::E> {
-        if !settings.allow_addend {
-            Ok(self.inner.get(key).map(|v| (*key, v)))
-        } else {
-            let mut range = self.inner.range(..=key);
+    pub fn find(&self, key: &K, settings: FindSettings) -> Result<Option<(&K, &V)>, V::E> {
+        let mut range = self.inner.range(..=key);
 
-            let Some((other_key, v)) = range.next_back() else {
-                return Ok(None);
-            };
+        let Some((other_key, v)) = range.next_back() else {
+            return Ok(None);
+        };
 
-            let other_key = *other_key;
-            Ok(if &other_key == key || *key < other_key + v.size()? {
-                Some((other_key, v))
-            } else {
-                None
-            })
+        if other_key == key {
+            return Ok(Some((other_key, v)));
         }
+
+        Ok(if settings.allow_addend && *key < *other_key + v.size()? {
+            Some((other_key, v))
+        } else {
+            None
+        })
     }
 
     #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
-    pub fn find_key(&self, key: &K, settings: FindSettings) -> Result<Option<K>, V::E> {
+    pub fn find_key(&self, key: &K, settings: FindSettings) -> Result<Option<&K>, V::E> {
         self.find(key, settings).map(|x| x.map(|y| y.0))
     }
 
@@ -91,23 +90,22 @@ where
         &mut self,
         key: &K,
         settings: FindSettings,
-    ) -> Result<Option<(K, &mut V)>, V::E> {
-        if !settings.allow_addend {
-            Ok(self.inner.get_mut(key).map(|v| (*key, v)))
-        } else {
-            let mut range = self.inner.range_mut(..=key);
+    ) -> Result<Option<(&K, &mut V)>, V::E> {
+        let mut range = self.inner.range_mut(..=key);
 
-            let Some((other_key, v)) = range.next_back() else {
-                return Ok(None);
-            };
+        let Some((other_key, v)) = range.next_back() else {
+            return Ok(None);
+        };
 
-            let other_key = *other_key;
-            Ok(if &other_key == key || *key < other_key + v.size()? {
-                Some((other_key, v))
-            } else {
-                None
-            })
+        if other_key == key {
+            return Ok(Some((other_key, v)));
         }
+
+        Ok(if settings.allow_addend && *key < *other_key + v.size()? {
+            Some((other_key, v))
+        } else {
+            None
+        })
     }
 }
 
@@ -390,12 +388,12 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            Ok(Some((0x1000, &Some(4)))),
+            Ok(Some((&0x1000, &Some(4)))),
             map.find(&0x1000, FindSettings::new(true)),
         );
 
         assert_eq!(
-            Ok(Some((0x1000, &Some(4)))),
+            Ok(Some((&0x1000, &Some(4)))),
             map.find(&0x1002, FindSettings::new(true)),
         );
 

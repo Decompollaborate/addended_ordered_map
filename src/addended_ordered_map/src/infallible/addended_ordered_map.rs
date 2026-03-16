@@ -49,14 +49,14 @@ where
     V: SizedValue<SIZE>,
 {
     #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
-    pub fn find(&self, key: &K, settings: FindSettings) -> Option<(K, &V)> {
+    pub fn find(&self, key: &K, settings: FindSettings) -> Option<(&K, &V)> {
         self.inner
             .find(key, settings)
             .expect("Infallible operation")
     }
 
     #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
-    pub fn find_key(&self, key: &K, settings: FindSettings) -> Option<K> {
+    pub fn find_key(&self, key: &K, settings: FindSettings) -> Option<&K> {
         self.inner
             .find_key(key, settings)
             .expect("Infallible operation")
@@ -70,7 +70,7 @@ where
     }
 
     #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
-    pub fn find_mut(&mut self, key: &K, settings: FindSettings) -> Option<(K, &mut V)> {
+    pub fn find_mut(&mut self, key: &K, settings: FindSettings) -> Option<(&K, &mut V)> {
         self.inner
             .find_mut(key, settings)
             .expect("Infallible operation")
@@ -274,12 +274,12 @@ mod tests {
         map.find_mut_or_insert_with(0x1004, FindSettings::new(true), || Some(4));
 
         assert_eq!(
-            Some((0x1000, &Some(4))),
+            Some((&0x1000, &Some(4))),
             map.find(&0x1000, FindSettings::new(true)),
         );
 
         assert_eq!(
-            Some((0x1000, &Some(4))),
+            Some((&0x1000, &Some(4))),
             map.find(&0x1002, FindSettings::new(true)),
         );
 
