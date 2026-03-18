@@ -63,15 +63,25 @@ impl PyAddendedOrderedMap {
         Ok(self.find(key, settings)?.map(|x| x.1))
     }
 
-    /*
-    pub fn contains_key<Q>(&self, key: &Q) -> bool
-    where
-        K: Borrow<Q>,
-        Q: ?Sized + Ord,
-    {
-        self.inner.contains_key(key)
+    #[pyo3(signature = (key, inclusive = false))]
+    pub fn find_left_of(&self, py: Python<'_>, key: PyK, inclusive: bool) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
+        if let Some((k, v)) = self.inner.find_left_of(&key, inclusive) {
+            let k2 = k.into_pyobject(py)?.unbind();
+            Ok(Some((k2, v)))
+        } else {
+            Ok(None)
+        }
     }
-    */
+
+    #[pyo3(signature = (key, inclusive = false))]
+    pub fn find_right_of(&self, py: Python<'_>, key: PyK, inclusive: bool) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
+        if let Some((k, v)) = self.inner.find_right_of(&key, inclusive) {
+            let k2 = k.into_pyobject(py)?.unbind();
+            Ok(Some((k2, v)))
+        } else {
+            Ok(None)
+        }
+    }
 
     #[pyo3(signature = (key, new_value, settings = PyFindSettings::new(true)))]
     pub fn find_or_insert<'py>(

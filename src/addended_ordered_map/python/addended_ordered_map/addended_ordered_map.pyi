@@ -40,6 +40,18 @@ class AddendedOrderedMap(Generic[V]):
         settings: FindSettings = FindSettings(True),
     ) -> Optional[V]: ...
 
+    def find_left_of(
+        self,
+        key: int,
+        inclusive: bool = False
+    ) -> Optional[tuple[int, V]]: ...
+
+    def find_right_of(
+        self,
+        key: int,
+        inclusive: bool = False
+    ) -> Optional[tuple[int, V]]: ...
+
     def find_or_insert(
         self,
         key: int,

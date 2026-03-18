@@ -59,6 +59,14 @@ def basic_test():
 
     assert test_map.find(0x1008) is None
 
+    assert test_map.find_left_of(0x1004, True) == (0x1004, value_0x1004)
+    assert test_map.find_left_of(0x1004, False) == (0x1000, value_0x1000)
+
+    assert test_map.find_right_of(0x1004, True) == (0x1004, value_0x1004)
+    assert test_map.find_right_of(0x1004, False) == (0x100C, value_0x100C)
+
+    assert test_map.find_left_of(0x1004, True) == test_map.find_right_of(0x1004, True)
+
     # Check references work and modifying them also work
     assert test_map.find(0x1010) is None
     value_0x100C.size = 0x10
@@ -137,6 +145,14 @@ def basic_test_with():
     assert test_map.find(0x1002, FindSettings(False)) is None
 
     assert test_map.find(0x1008) is None
+
+    assert test_map.find_left_of(0x1004, True) == (0x1004, value_0x1004)
+    assert test_map.find_left_of(0x1004, False) == (0x1000, value_0x1000)
+
+    assert test_map.find_right_of(0x1004, True) == (0x1004, value_0x1004)
+    assert test_map.find_right_of(0x1004, False) == (0x100C, value_0x100C)
+
+    assert test_map.find_left_of(0x1004, True) == test_map.find_right_of(0x1004, True)
 
     # Check references work and modifying them also work
     assert test_map.find(0x1010) is None

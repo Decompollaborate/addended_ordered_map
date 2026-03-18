@@ -71,6 +71,26 @@ where
             .find_mut(key, settings)
             .expect("Infallible operation")
     }
+
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
+    pub fn find_left_of(&self, key: &K, inclusive: bool) -> Option<(&K, &V)> {
+        self.inner.find_left_of(key, inclusive)
+    }
+
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
+    pub fn find_right_of(&self, key: &K, inclusive: bool) -> Option<(&K, &V)> {
+        self.inner.find_right_of(key, inclusive)
+    }
+
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
+    pub fn find_left_of_mut(&mut self, key: &K, inclusive: bool) -> Option<(&K, &mut V)> {
+        self.inner.find_left_of_mut(key, inclusive)
+    }
+
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
+    pub fn find_right_of_mut(&mut self, key: &K, inclusive: bool) -> Option<(&K, &mut V)> {
+        self.inner.find_right_of_mut(key, inclusive)
+    }
 }
 
 impl<K, V, SIZE> AddendedOrderedMap<K, V, SIZE>
@@ -345,5 +365,38 @@ mod tests {
         assert_eq!(None, map.find(&0x1002, FindSettings::new(false)),);
 
         assert_eq!(None, map.find(&0x1008, FindSettings::new(true)),);
+    }
+
+    #[test]
+    fn check_left_right() {
+        let mut map: AddendedOrderedMap<u32, Option<u32>, u32> =
+            AddendedOrderedMap::new();
+
+        map.find_mut_or_insert_with(0x100C, FindSettings::new(true), || None);
+        map.find_mut_or_insert_with(0x1000, FindSettings::new(true), || Some(4));
+        map.find_mut_or_insert_with(0x1004, FindSettings::new(true), || Some(4));
+
+        assert_eq!(
+            Some((&0x1004, &Some(4))),
+            map.find_left_of(&0x1004, true),
+        );
+        assert_eq!(
+            Some((&0x1000, &Some(4))),
+            map.find_left_of(&0x1004, false),
+        );
+
+        assert_eq!(
+            Some((&0x1004, &Some(4))),
+            map.find_right_of(&0x1004, true),
+        );
+        assert_eq!(
+            Some((&0x100C, &None)),
+            map.find_right_of(&0x1004, false),
+        );
+
+        assert_eq!(
+            map.find_left_of(&0x1004, true),
+            map.find_right_of(&0x1004, true),
+        );
     }
 }

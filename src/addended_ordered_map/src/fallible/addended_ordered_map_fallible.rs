@@ -2,7 +2,7 @@
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
 use alloc::collections::btree_map::{self, BTreeMap};
-use core::{fmt, marker::PhantomData, ops::RangeBounds};
+use core::{fmt, marker::PhantomData, ops::{RangeBounds, Bound}};
 
 #[cfg(not(feature = "nightly"))]
 use ::polonius_the_crab::prelude::*;
@@ -97,6 +97,54 @@ where
         };
 
         Ok(ret)
+    }
+
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
+    pub fn find_left_of(&self, key: &K, inclusive: bool) -> Option<(&K, &V)> {
+        let start = Bound::Unbounded;
+        let end = if inclusive {
+            Bound::Included(key)
+        } else {
+            Bound::Excluded(key)
+        };
+
+        self.inner.range((start, end)).next_back()
+    }
+
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
+    pub fn find_right_of(&self, key: &K, inclusive: bool) -> Option<(&K, &V)> {
+        let start = if inclusive {
+            Bound::Included(key)
+        } else {
+            Bound::Excluded(key)
+        };
+        let end = Bound::Unbounded;
+
+        self.inner.range((start, end)).next()
+    }
+
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
+    pub fn find_left_of_mut(&mut self, key: &K, inclusive: bool) -> Option<(&K, &mut V)> {
+        let start = Bound::Unbounded;
+        let end = if inclusive {
+            Bound::Included(key)
+        } else {
+            Bound::Excluded(key)
+        };
+
+        self.inner.range_mut((start, end)).next_back()
+    }
+
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
+    pub fn find_right_of_mut(&mut self, key: &K, inclusive: bool) -> Option<(&K, &mut V)> {
+        let start = if inclusive {
+            Bound::Included(key)
+        } else {
+            Bound::Excluded(key)
+        };
+        let end = Bound::Unbounded;
+
+        self.inner.range_mut((start, end)).next()
     }
 }
 
@@ -464,5 +512,41 @@ mod tests {
         assert_eq!(Ok(None), map.find(&0x1002, FindSettings::new(false)),);
 
         assert_eq!(Ok(None), map.find(&0x1008, FindSettings::new(true)),);
+    }
+
+    #[test]
+    fn check_left_right() {
+        let mut map: AddendedOrderedMapFallible<u32, Option<u32>, u32, Infallible> =
+            AddendedOrderedMapFallible::new();
+
+        map.find_mut_or_insert_with(0x100C, FindSettings::new(true), || Ok(None))
+            .unwrap();
+        map.find_mut_or_insert_with(0x1000, FindSettings::new(true), || Ok(Some(4)))
+            .unwrap();
+        map.find_mut_or_insert_with(0x1004, FindSettings::new(true), || Ok(Some(4)))
+            .unwrap();
+
+        assert_eq!(
+            Some((&0x1004, &Some(4))),
+            map.find_left_of(&0x1004, true),
+        );
+        assert_eq!(
+            Some((&0x1000, &Some(4))),
+            map.find_left_of(&0x1004, false),
+        );
+
+        assert_eq!(
+            Some((&0x1004, &Some(4))),
+            map.find_right_of(&0x1004, true),
+        );
+        assert_eq!(
+            Some((&0x100C, &None)),
+            map.find_right_of(&0x1004, false),
+        );
+
+        assert_eq!(
+            map.find_left_of(&0x1004, true),
+            map.find_right_of(&0x1004, true),
+        );
     }
 }
