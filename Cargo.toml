@@ -3,7 +3,7 @@
 
 [workspace]
 members = [
-    "src/addended_ordered_map",
+    "crates/addended_ordered_map",
 ]
 resolver = "2"
 
