@@ -64,7 +64,12 @@ impl PyAddendedOrderedMap {
     }
 
     #[pyo3(signature = (key, inclusive = false))]
-    pub fn find_left_of(&self, py: Python<'_>, key: PyK, inclusive: bool) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
+    pub fn find_left_of(
+        &self,
+        py: Python<'_>,
+        key: PyK,
+        inclusive: bool,
+    ) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
         if let Some((k, v)) = self.inner.find_left_of(&key, inclusive) {
             let k2 = k.into_pyobject(py)?.unbind();
             Ok(Some((k2, v)))
@@ -74,7 +79,12 @@ impl PyAddendedOrderedMap {
     }
 
     #[pyo3(signature = (key, inclusive = false))]
-    pub fn find_right_of(&self, py: Python<'_>, key: PyK, inclusive: bool) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
+    pub fn find_right_of(
+        &self,
+        py: Python<'_>,
+        key: PyK,
+        inclusive: bool,
+    ) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
         if let Some((k, v)) = self.inner.find_right_of(&key, inclusive) {
             let k2 = k.into_pyobject(py)?.unbind();
             Ok(Some((k2, v)))

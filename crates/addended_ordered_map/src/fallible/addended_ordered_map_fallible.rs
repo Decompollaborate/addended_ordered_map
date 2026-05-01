@@ -2,7 +2,11 @@
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
 use alloc::collections::btree_map::{self, BTreeMap};
-use core::{fmt, marker::PhantomData, ops::{RangeBounds, Bound}};
+use core::{
+    fmt,
+    marker::PhantomData,
+    ops::{Bound, RangeBounds},
+};
 
 #[cfg(not(feature = "nightly"))]
 use ::polonius_the_crab::prelude::*;
@@ -526,23 +530,11 @@ mod tests {
         map.find_mut_or_insert_with(0x1004, FindSettings::new(true), || Ok(Some(4)))
             .unwrap();
 
-        assert_eq!(
-            Some((&0x1004, &Some(4))),
-            map.find_left_of(&0x1004, true),
-        );
-        assert_eq!(
-            Some((&0x1000, &Some(4))),
-            map.find_left_of(&0x1004, false),
-        );
+        assert_eq!(Some((&0x1004, &Some(4))), map.find_left_of(&0x1004, true),);
+        assert_eq!(Some((&0x1000, &Some(4))), map.find_left_of(&0x1004, false),);
 
-        assert_eq!(
-            Some((&0x1004, &Some(4))),
-            map.find_right_of(&0x1004, true),
-        );
-        assert_eq!(
-            Some((&0x100C, &None)),
-            map.find_right_of(&0x1004, false),
-        );
+        assert_eq!(Some((&0x1004, &Some(4))), map.find_right_of(&0x1004, true),);
+        assert_eq!(Some((&0x100C, &None)), map.find_right_of(&0x1004, false),);
 
         assert_eq!(
             map.find_left_of(&0x1004, true),

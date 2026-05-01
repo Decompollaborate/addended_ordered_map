@@ -369,30 +369,17 @@ mod tests {
 
     #[test]
     fn check_left_right() {
-        let mut map: AddendedOrderedMap<u32, Option<u32>, u32> =
-            AddendedOrderedMap::new();
+        let mut map: AddendedOrderedMap<u32, Option<u32>, u32> = AddendedOrderedMap::new();
 
         map.find_mut_or_insert_with(0x100C, FindSettings::new(true), || None);
         map.find_mut_or_insert_with(0x1000, FindSettings::new(true), || Some(4));
         map.find_mut_or_insert_with(0x1004, FindSettings::new(true), || Some(4));
 
-        assert_eq!(
-            Some((&0x1004, &Some(4))),
-            map.find_left_of(&0x1004, true),
-        );
-        assert_eq!(
-            Some((&0x1000, &Some(4))),
-            map.find_left_of(&0x1004, false),
-        );
+        assert_eq!(Some((&0x1004, &Some(4))), map.find_left_of(&0x1004, true),);
+        assert_eq!(Some((&0x1000, &Some(4))), map.find_left_of(&0x1004, false),);
 
-        assert_eq!(
-            Some((&0x1004, &Some(4))),
-            map.find_right_of(&0x1004, true),
-        );
-        assert_eq!(
-            Some((&0x100C, &None)),
-            map.find_right_of(&0x1004, false),
-        );
+        assert_eq!(Some((&0x1004, &Some(4))), map.find_right_of(&0x1004, true),);
+        assert_eq!(Some((&0x100C, &None)), map.find_right_of(&0x1004, false),);
 
         assert_eq!(
             map.find_left_of(&0x1004, true),
