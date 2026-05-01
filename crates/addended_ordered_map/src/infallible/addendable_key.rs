@@ -1,7 +1,7 @@
 /* SPDX-FileCopyrightText: © 2026 Decompollaborate */
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
-use core::{convert::Infallible, ops::Add};
+use core::ops::Add;
 
 use crate::fallible::AddendableKeyFallible;
 
@@ -12,11 +12,11 @@ where
     fn add_size(&self, size: &SIZE) -> Self;
 }
 
-impl<T, S> AddendableKeyFallible<S, Infallible> for T
+impl<T, S, E> AddendableKeyFallible<S, E> for T
 where
     T: AddendableKey<S>,
 {
-    fn add_size(&self, size: &S) -> Result<Self, Infallible> {
+    fn add_size(&self, size: &S) -> Result<Self, E> {
         Ok(AddendableKey::add_size(self, size))
     }
 }
