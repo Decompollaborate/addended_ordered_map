@@ -3,8 +3,10 @@
 
 use pyo3::prelude::*;
 
-use crate::python_bindings::PySizedValueBase;
+use crate::{PySizedValueBase, PySizedValueBaseWrapper, PySizedValueBaseWrapperArc};
 
 pub type PyK = u64;
 pub type PyV = Py<PySizedValueBase>;
+pub type PyVW = PySizedValueBaseWrapper;
+pub type PyVWA = PySizedValueBaseWrapperArc;
 pub type PyS = u64;

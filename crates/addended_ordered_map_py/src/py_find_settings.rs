@@ -3,7 +3,7 @@
 
 use pyo3::prelude::*;
 
-use crate::FindSettings;
+use addended_ordered_map::FindSettings;
 
 #[pyclass(name = "FindSettings", module = "addended_ordered_map", from_py_object)]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]

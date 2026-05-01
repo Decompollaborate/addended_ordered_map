@@ -1,14 +1,16 @@
 /* SPDX-FileCopyrightText: © 2026 Decompollaborate */
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
-use alloc::sync::Arc;
+use std::ops::Deref;
+use std::sync::Arc;
 
 use pyo3::exceptions::{PyNotImplementedError, PyRuntimeError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyTuple};
 
-use crate::fallible::SizedValueFallible;
-use crate::python_bindings::py_alias::PyS;
+use addended_ordered_map::fallible::SizedValueFallible;
+
+use crate::py_alias::PyS;
 
 #[pyclass(
     name = "SizedValue",
@@ -38,10 +40,16 @@ impl PySizedValueBase {
     }
 }
 
-impl SizedValueFallible<PyS, PyErr> for Py<PySizedValueBase> {
+#[derive(Debug)]
+#[non_exhaustive]
+#[repr(transparent)]
+pub struct PySizedValueBaseWrapper(Py<PySizedValueBase>);
+
+
+impl SizedValueFallible<PyS, PyErr> for PySizedValueBaseWrapper {
     fn size(&self) -> Result<PyS, PyErr> {
         Python::try_attach(|py| {
-            let size = self.call_method0(py, "get_size")?;
+            let size = self.0.call_method0(py, "get_size")?;
             let s: u64 = size.extract(py)?;
             Ok(s)
         })
@@ -50,8 +58,36 @@ impl SizedValueFallible<PyS, PyErr> for Py<PySizedValueBase> {
     }
 }
 
-impl SizedValueFallible<PyS, PyErr> for Arc<Py<PySizedValueBase>> {
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+#[repr(transparent)]
+pub struct PySizedValueBaseWrapperArc(Arc<PySizedValueBaseWrapper>);
+
+impl PySizedValueBaseWrapperArc {
+    pub fn new(value: Py<PySizedValueBase>) -> Self {
+        Self(Arc::new(PySizedValueBaseWrapper(value)))
+    }
+}
+
+
+impl SizedValueFallible<PyS, PyErr> for PySizedValueBaseWrapperArc {
     fn size(&self) -> Result<PyS, PyErr> {
-        Arc::as_ref(self).size()
+        Arc::as_ref(&self.0).size()
+    }
+}
+
+impl Deref for PySizedValueBaseWrapperArc {
+    type Target = Arc<PySizedValueBaseWrapper>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Deref for PySizedValueBaseWrapper {
+    type Target = Py<PySizedValueBase>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }

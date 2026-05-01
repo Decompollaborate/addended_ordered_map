@@ -1,21 +1,20 @@
 /* SPDX-FileCopyrightText: © 2026 Decompollaborate */
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
-use alloc::sync::Arc;
-
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyInt;
 
-use crate::fallible::AddendedOrderedMapFallible;
-use crate::python_bindings::py_alias::{PyK, PyS, PyV};
-use crate::python_bindings::{PyFindSettings, PyIntoIter, PyRangeMut};
+use addended_ordered_map::fallible::AddendedOrderedMapFallible;
+
+use crate::py_alias::{PyK, PyS, PyV, PyVWA};
+use crate::{PyFindSettings, PyIntoIter, PyRangeMut};
 
 #[pyclass(name = "AddendedOrderedMap", module = "addended_ordered_map", generic)]
 pub struct PyAddendedOrderedMap {
     // We use Arc because Py can't be just cloned
     // https://pyo3.rs/v0.28.2/migration.html#pyclone-is-now-gated-behind-the-py-clone-feature
-    inner: AddendedOrderedMapFallible<PyK, Arc<PyV>, PyS, PyErr>,
+    inner: AddendedOrderedMapFallible<PyK, PyVWA, PyS, PyErr>,
 }
 
 #[pymethods]
@@ -64,12 +63,7 @@ impl PyAddendedOrderedMap {
     }
 
     #[pyo3(signature = (key, inclusive = false))]
-    pub fn find_left_of(
-        &self,
-        py: Python<'_>,
-        key: PyK,
-        inclusive: bool,
-    ) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
+    pub fn find_left_of(&self, py: Python<'_>, key: PyK, inclusive: bool) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
         if let Some((k, v)) = self.inner.find_left_of(&key, inclusive) {
             let k2 = k.into_pyobject(py)?.unbind();
             Ok(Some((k2, v)))
@@ -79,12 +73,7 @@ impl PyAddendedOrderedMap {
     }
 
     #[pyo3(signature = (key, inclusive = false))]
-    pub fn find_right_of(
-        &self,
-        py: Python<'_>,
-        key: PyK,
-        inclusive: bool,
-    ) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
+    pub fn find_right_of(&self, py: Python<'_>, key: PyK, inclusive: bool) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
         if let Some((k, v)) = self.inner.find_right_of(&key, inclusive) {
             let k2 = k.into_pyobject(py)?.unbind();
             Ok(Some((k2, v)))
@@ -104,7 +93,7 @@ impl PyAddendedOrderedMap {
 
         let (v, newly_created) = self
             .inner
-            .find_mut_or_insert_with(key, find_settings, || Ok(Arc::new(new_value)))?;
+            .find_mut_or_insert_with(key, find_settings, || Ok(PyVWA::new(new_value)))?;
         Ok((v, newly_created))
     }
 
@@ -122,7 +111,7 @@ impl PyAddendedOrderedMap {
             // call a callable python object/function/lambda/etc
             let result = new_default.call0()?;
             let casted = result.cast().map(|x| x.clone().unbind())?;
-            Ok(Arc::new(casted))
+            Ok(PyVWA::new(casted))
         })?;
         Ok((v, newly_created))
     }
@@ -145,7 +134,7 @@ impl PyAddendedOrderedMap {
     ) -> Vec<(PyK, PyV)> {
         fn map_impl<'py>(
             py: Python<'py>,
-            iter: impl Iterator<Item = (PyK, Arc<PyV>)>,
+            iter: impl Iterator<Item = (PyK, PyVWA)>,
         ) -> Vec<(PyK, PyV)> {
             iter.map(|(k, v)| (k, v.clone_ref(py))).collect()
         }

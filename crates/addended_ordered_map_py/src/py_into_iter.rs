@@ -1,14 +1,14 @@
 /* SPDX-FileCopyrightText: © 2026 Decompollaborate */
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
-use alloc::collections::btree_map;
-use alloc::sync::Arc;
+use std::collections::btree_map;
 
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-use crate::fallible::AddendedOrderedMapFallible;
-use crate::python_bindings::py_alias::{PyK, PyS, PyV};
+use addended_ordered_map::fallible::AddendedOrderedMapFallible;
+
+use crate::py_alias::{PyK, PyS, PyV, PyVWA};
 
 #[pyclass(
     name = "AddendedOrderedMapIter",
@@ -17,7 +17,7 @@ use crate::python_bindings::py_alias::{PyK, PyS, PyV};
 )]
 #[must_use]
 pub struct PyIntoIter {
-    inner: btree_map::IntoIter<PyK, Arc<PyV>>,
+    inner: btree_map::IntoIter<PyK, PyVWA>,
 }
 
 #[pymethods]
@@ -39,7 +39,7 @@ impl PyIntoIter {
 }
 
 impl PyIntoIter {
-    pub fn new(map: AddendedOrderedMapFallible<PyK, Arc<PyV>, PyS, PyErr>) -> Self {
+    pub fn new(map: AddendedOrderedMapFallible<PyK, PyVWA, PyS, PyErr>) -> Self {
         Self {
             inner: map.into_iter(),
         }

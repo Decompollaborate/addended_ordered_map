@@ -16,6 +16,3 @@ mod infallible;
 
 pub use find_settings::FindSettings;
 pub use infallible::*;
-
-#[cfg(feature = "pyo3")]
-mod python_bindings;

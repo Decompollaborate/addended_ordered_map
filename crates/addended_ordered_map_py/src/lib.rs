@@ -1,6 +1,11 @@
 /* SPDX-FileCopyrightText: © 2026 Decompollaborate */
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
+#![warn(clippy::ref_option)]
+#![warn(clippy::ref_option_ref)]
+#![warn(clippy::useless_let_if_seq)]
+
+
 use pyo3::prelude::*;
 
 mod py_addended_ordered_map;
@@ -14,9 +19,8 @@ pub use py_addended_ordered_map::PyAddendedOrderedMap;
 pub use py_find_settings::PyFindSettings;
 pub use py_into_iter::PyIntoIter;
 pub use py_range_mut::PyRangeMut;
-pub use py_sized_value::PySizedValueBase;
+pub use py_sized_value::{PySizedValueBase, PySizedValueBaseWrapper, PySizedValueBaseWrapperArc};
 
-#[cfg(feature = "pyo3")]
 #[pymodule]
 fn addended_ordered_map(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyAddendedOrderedMap>()?;

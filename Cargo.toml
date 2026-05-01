@@ -4,8 +4,16 @@
 [workspace]
 members = [
     "crates/addended_ordered_map",
+    "crates/addended_ordered_map_py",
 ]
 resolver = "2"
+
+# [workspace.package]
+# version = "0.1.0"
+# authors = [
+#     "Anghelo Carvajal <angheloalf95@gmail.com>",
+# ]
+# repository = "https://github.com/Decompollaborate/addended_ordered_map"
 
 [profile.release]
 debug = true

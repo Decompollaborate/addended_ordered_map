@@ -7,6 +7,13 @@ name = "addended_ordered_map"
 version = "0.1.0"
 dependencies = [
  "polonius-the-crab",
+]
+
+[[package]]
+name = "addended_ordered_map_py"
+version = "0.1.0"
+dependencies = [
+ "addended_ordered_map",
  "pyo3",
 ]
 

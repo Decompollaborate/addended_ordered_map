@@ -5,6 +5,6 @@ mod addendable_key;
 mod addended_ordered_map;
 mod sized_value;
 
-pub use addendable_key::AddendableKey;
-pub use addended_ordered_map::{AddendedOrderedMap, Range, RangeMut};
-pub use sized_value::SizedValue;
+pub use self::addendable_key::AddendableKey;
+pub use self::addended_ordered_map::{AddendedOrderedMap, Range, RangeMut};
+pub use self::sized_value::SizedValue;

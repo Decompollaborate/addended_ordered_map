@@ -1,14 +1,14 @@
 /* SPDX-FileCopyrightText: © 2026 Decompollaborate */
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
-use alloc::sync::Arc;
-use alloc::vec;
+use std::vec;
 
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-use crate::fallible::AddendedOrderedMapFallible;
-use crate::python_bindings::py_alias::{PyK, PyS, PyV};
+use addended_ordered_map::fallible::AddendedOrderedMapFallible;
+
+use crate::py_alias::{PyK, PyS, PyV, PyVWA};
 
 #[pyclass(
     name = "AddendedOrderedMapRange",
@@ -20,7 +20,7 @@ pub struct PyRangeMut {
     // We can't use real Range/RangeMut because they require a lifetime
     // parameter, which is a no-no for pyo3.
     // Instead we collect the range into a vec iterator.
-    inner: vec::IntoIter<(PyK, Arc<PyV>)>,
+    inner: vec::IntoIter<(PyK, PyVWA)>,
 }
 
 #[pymethods]
@@ -43,7 +43,7 @@ impl PyRangeMut {
 
 impl PyRangeMut {
     pub fn new(
-        map: &mut AddendedOrderedMapFallible<PyK, Arc<PyV>, PyS, PyErr>,
+        map: &mut AddendedOrderedMapFallible<PyK, PyVWA, PyS, PyErr>,
         left: Option<PyK>,
         right: Option<PyK>,
     ) -> Self {

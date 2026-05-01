@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 [package]
-name = "addended_ordered_map"
+name = "addended_ordered_map_py"
 version = "0.1.0"
 # description = ""
 edition = "2021"
@@ -13,29 +13,21 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/Decompollaborate/addended_ordered_map"
 readme = "README.md"
 # keywords = []
-categories = [
-    "no-std",
-]
+# categories = []
+publish = false
 
-rust-version = "1.56.0"
+rust-version = "1.60.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "addended_ordered_map"
+name = "addended_ordered_map_py"
 path = "src/lib.rs"
 
 [features]
 default = []
-std = []
-
-# Exposes the `extract_if` method.
-# Bumps the MSRV to 1.91.
-extract_if = []
-
-# Evil stuff, do not use.
-nightly = []
 
 [dependencies]
-# TODO: get rid of the polonius stuff when the new borrow checker has been released.
-polonius-the-crab = "0"
+addended_ordered_map = { path = "../addended_ordered_map", features = ["std", "extract_if"] }
+
+pyo3 = { version = "0.28" }
