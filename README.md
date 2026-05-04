@@ -27,7 +27,7 @@ We try to always keep backwards compatibility, so no breaking changes should
 happen until a major release (i.e. jumping from 1.X.X to 2.0.0).
 
 To see what changed on each release visit either the
-[CHANGELOG.md](https://github.com/Decompollaborate/gnuv2_demangle/blob/main/CHANGELOG.md)
-file or check the [releases page on Github](https://github.com/Decompollaborate/gnuv2_demangle/releases).
-You can also use [this link](https://github.com/Decompollaborate/gnuv2_demangle/releases/latest)
+[CHANGELOG.md](https://github.com/Decompollaborate/addended_ordered_map/blob/main/CHANGELOG.md)
+file or check the [releases page on Github](https://github.com/Decompollaborate/addended_ordered_map/releases).
+You can also use [this link](https://github.com/Decompollaborate/addended_ordered_map/releases/latest)
 to check the latest release.
