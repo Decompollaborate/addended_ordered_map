@@ -104,6 +104,11 @@ where
     }
 
     #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
+    pub fn find_value_mut(&mut self, key: &K, settings: FindSettings) -> Result<Option<&mut V>, E> {
+        self.find_mut(key, settings).map(|x| x.map(|y| y.1))
+    }
+
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
     pub fn find_left_of(&self, key: &K, inclusive: bool) -> Option<(&K, &V)> {
         let start = Bound::Unbounded;
         let end = if inclusive {

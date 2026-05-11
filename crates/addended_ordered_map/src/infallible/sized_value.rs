@@ -16,12 +16,101 @@ where
     }
 }
 
-// TODO: consider removing?
 impl<S> SizedValue<S> for S
 where
     S: Copy,
 {
     fn size(&self) -> S {
         *self
+    }
+}
+
+impl<S> SizedValue<S> for Option<S>
+where
+    S: Copy + Default,
+{
+    fn size(&self) -> S {
+        self.unwrap_or_default()
+    }
+}
+
+impl<S> SizedValue<S> for (S,)
+where
+    S: SizedValue<S>,
+{
+    fn size(&self) -> S {
+        self.0.size()
+    }
+}
+
+impl<S, T1> SizedValue<S> for (S, T1)
+where
+    S: SizedValue<S>,
+{
+    fn size(&self) -> S {
+        self.0.size()
+    }
+}
+
+impl<S, T1, T2> SizedValue<S> for (S, T1, T2)
+where
+    S: SizedValue<S>,
+{
+    fn size(&self) -> S {
+        self.0.size()
+    }
+}
+
+impl<S, T1, T2, T3> SizedValue<S> for (S, T1, T2, T3)
+where
+    S: SizedValue<S>,
+{
+    fn size(&self) -> S {
+        self.0.size()
+    }
+}
+
+impl<S, T1, T2, T3, T4> SizedValue<S> for (S, T1, T2, T3, T4)
+where
+    S: SizedValue<S>,
+{
+    fn size(&self) -> S {
+        self.0.size()
+    }
+}
+
+impl<S, T1, T2, T3, T4, T5> SizedValue<S> for (S, T1, T2, T3, T4, T5)
+where
+    S: SizedValue<S>,
+{
+    fn size(&self) -> S {
+        self.0.size()
+    }
+}
+
+impl<S, T1, T2, T3, T4, T5, T6> SizedValue<S> for (S, T1, T2, T3, T4, T5, T6)
+where
+    S: SizedValue<S>,
+{
+    fn size(&self) -> S {
+        self.0.size()
+    }
+}
+
+impl<S, T1, T2, T3, T4, T5, T6, T7> SizedValue<S> for (S, T1, T2, T3, T4, T5, T6, T7)
+where
+    S: SizedValue<S>,
+{
+    fn size(&self) -> S {
+        self.0.size()
+    }
+}
+
+impl<S, T1, T2, T3, T4, T5, T6, T7, T8> SizedValue<S> for (S, T1, T2, T3, T4, T5, T6, T7, T8)
+where
+    S: SizedValue<S>,
+{
+    fn size(&self) -> S {
+        self.0.size()
     }
 }

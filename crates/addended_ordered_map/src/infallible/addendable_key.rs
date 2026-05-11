@@ -12,18 +12,19 @@ where
     fn add_size(&self, size: &SIZE) -> Self;
 }
 
-impl<T, S, E> AddendableKeyFallible<S, E> for T
+impl<K, S, E> AddendableKeyFallible<S, E> for K
 where
-    T: AddendableKey<S>,
+    K: AddendableKey<S>,
 {
     fn add_size(&self, size: &S) -> Result<Self, E> {
         Ok(AddendableKey::add_size(self, size))
     }
 }
 
-impl<S> AddendableKey<S> for S
+impl<K, S> AddendableKey<S> for K
 where
-    S: Copy + Add<S, Output = S>,
+    K: Copy + Add<S, Output = K>,
+    S: Copy,
 {
     fn add_size(&self, size: &S) -> Self {
         *self + *size

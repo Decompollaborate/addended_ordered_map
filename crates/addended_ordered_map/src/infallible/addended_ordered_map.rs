@@ -73,6 +73,13 @@ where
     }
 
     #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
+    pub fn find_value_mut(&mut self, key: &K, settings: FindSettings) -> Option<&mut V> {
+        self.inner
+            .find_value_mut(key, settings)
+            .expect("Infallible operation")
+    }
+
+    #[must_use = "This is a lookup function, there are no side-effects on the mapping."]
     pub fn find_left_of(&self, key: &K, inclusive: bool) -> Option<(&K, &V)> {
         self.inner.find_left_of(key, inclusive)
     }
@@ -333,12 +340,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    impl SizedValue<u32> for Option<u32> {
-        fn size(&self) -> u32 {
-            self.unwrap_or(1)
-        }
-    }
 
     #[test]
     fn check_bounds() {
