@@ -72,7 +72,7 @@ pub type RangeMut<'a, K, V> = btree_map::RangeMut<'a, K, V>;
 /// ```
 /// use addended_ordered_map::{AddendedOrderedMap, AddendableKey, FindSettings, SizedValue};
 ///
-/// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 /// struct TestKey(u32);
 /// #[derive(Debug, PartialEq)]
 /// struct TestValue(&'static str, u32);
@@ -491,27 +491,10 @@ where
         default: F,
     ) -> (&mut V, bool)
     where
-        // TODO: is Copy really needed?
-        K: Copy,
         F: FnOnce() -> V,
     {
         self.inner
             .find_mut_or_insert_with(key, settings, || Ok(default()))
-            .expect("Infallible operation")
-    }
-
-    // TODO: consider removing
-    pub fn find_mut_or_insert_with_key_value<F>(
-        &mut self,
-        key: &K,
-        settings: FindSettings,
-        default: F,
-    ) -> (&mut V, bool)
-    where
-        F: FnOnce() -> (K, V),
-    {
-        self.inner
-            .find_mut_or_insert_with_key_value(key, settings, || Ok(default()))
             .expect("Infallible operation")
     }
 
@@ -845,7 +828,7 @@ mod tests {
     #[test]
     fn check_custom_type() {
         // Debug required for assert_eq!
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+        #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
         struct TestKey(u32);
         #[derive(Debug, PartialEq)]
         struct TestValue(&'static str, u32);

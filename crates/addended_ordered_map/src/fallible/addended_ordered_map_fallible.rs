@@ -11,9 +11,6 @@ use core::{
 #[cfg(not(feature = "nightly"))]
 use ::polonius_the_crab::prelude::*;
 
-#[cfg(feature = "nightly")]
-use core::ops::Bound;
-
 use super::{AddendableKeyFallible, SizedValueFallible};
 use crate::FindSettings;
 
@@ -160,19 +157,19 @@ where
 #[cfg(not(feature = "nightly"))]
 fn add_impl<'slf, K, V, SIZE, E, F>(
     mut slf: &'slf mut AddendedOrderedMapFallible<K, V, SIZE, E>,
-    key: &K,
+    key: K,
     settings: FindSettings,
     default: F,
 ) -> Result<(&'slf mut V, bool), E>
 where
     K: Ord + AddendableKeyFallible<SIZE, E>,
     V: SizedValueFallible<SIZE, E>,
-    F: FnOnce() -> Result<(K, V), E>,
+    F: FnOnce() -> Result<V, E>,
 {
     // TODO: get rid of the polonius stuff when the new borrow checker has been released.
 
     polonius!(|slf| -> Result<(&'polonius mut V, bool), E> {
-        let ret = match slf.find_mut(key, settings) {
+        let ret = match slf.find_mut(&key, settings) {
             Ok(r) => r,
             Err(e) => {
                 polonius_return!(Err(e))
@@ -183,66 +180,66 @@ where
         }
     });
 
-    let (k, v) = default()?;
-    let entry = slf.inner.entry(k);
+    let v = default()?;
+    let entry = slf.inner.entry(key);
 
     let newly_created = matches!(entry, btree_map::Entry::Vacant(_));
     Ok((entry.or_insert(v), newly_created))
 }
 
 #[cfg(feature = "nightly")]
-fn add_impl<'slf, K, V, SIZE, E, F>(
-    slf: &'slf mut AddendedOrderedMapFallible<K, V, SIZE, E>,
-    key: &K,
+fn add_impl<K, V, SIZE, E, F>(
+    slf: &mut AddendedOrderedMapFallible<K, V, SIZE, E>,
+    key: K,
     settings: FindSettings,
     default: F,
-) -> Result<(&'slf mut V, bool), E>
+) -> Result<(&mut V, bool), E>
 where
     K: Ord + AddendableKeyFallible<SIZE, E>,
     V: SizedValueFallible<SIZE, E>,
-    F: FnOnce() -> Result<(K, V), E>,
+    F: FnOnce() -> Result<V, E>,
 {
-    let mut cursor = slf.inner.upper_bound_mut(Bound::Included(key));
+    let mut cursor = slf.inner.upper_bound_mut(Bound::Included(&key));
 
     let must_insert_new = if let Some((other_key, v)) = cursor.peek_prev() {
-        if key == other_key {
+        if &key == other_key {
             false
         } else if !settings.allow_addend {
             true
         } else {
-            key >= &other_key.add_size(&v.size()?)?
+            key >= other_key.add_size(&v.size()?)?
         }
     } else {
         true
     };
 
     if must_insert_new {
-        let (k, v) = default()?;
+        let v = default()?;
         cursor
-            .insert_before(k, v)
+            .insert_before(key, v)
             .expect("This should not be able to panic");
     }
 
-    //let sym = unsafe { &mut *(cursor.peek_prev().unwrap().1 as *mut SymbolMetadata) };
     Ok((into_prev_and_next(cursor).0.unwrap().1, must_insert_new))
 }
 
 #[cfg(feature = "nightly")]
+#[allow(clippy::type_complexity)]
 fn into_prev_and_next<'a, K, V>(
     mut cursor: btree_map::CursorMut<'a, K, V>,
 ) -> (Option<(&'a K, &'a mut V)>, Option<(&'a K, &'a mut V)>) {
-    let prev: Option<(&'a K, &'a mut V)> = cursor.peek_prev().map(|(k, v)| {
-        let ptr_k = k as *const K;
-        let ptr_v = v as *mut V;
-        unsafe { (&*ptr_k, &mut *ptr_v) }
-    });
-    let next: Option<(&'a K, &'a mut V)> = cursor.peek_next().map(|(k, v)| {
-        let ptr_k = k as *const K;
-        let ptr_v = v as *mut V;
-        unsafe { (&*ptr_k, &mut *ptr_v) }
-    });
+    let prev = cursor.peek_prev().map(map_lifetime_kv);
+    let next = cursor.peek_next().map(map_lifetime_kv);
 
     (prev, next)
+}
+
+#[cfg(feature = "nightly")]
+fn map_lifetime_kv<'old, 'new, K, V>((k, v): (&'old K, &'old mut V)) -> (&'new K, &'new mut V) {
+    let ptr_k = k as *const K;
+    let ptr_v = v as *mut V;
+    // SAFETY: I don't think this is safe tbh
+    unsafe { (&*ptr_k, &mut *ptr_v) }
 }
 
 impl<K, V, SIZE, E> AddendedOrderedMapFallible<K, V, SIZE, E>
@@ -257,20 +254,7 @@ where
         default: F,
     ) -> Result<(&mut V, bool), E>
     where
-        K: Copy,
         F: FnOnce() -> Result<V, E>,
-    {
-        add_impl(self, &key, settings, || default().map(|v| (key, v)))
-    }
-
-    pub fn find_mut_or_insert_with_key_value<F>(
-        &mut self,
-        key: &K,
-        settings: FindSettings,
-        default: F,
-    ) -> Result<(&mut V, bool), E>
-    where
-        F: FnOnce() -> Result<(K, V), E>,
     {
         add_impl(self, key, settings, default)
     }
@@ -548,7 +532,7 @@ mod tests {
     #[test]
     fn small() {
         // Hold values from 0 to 100
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+        #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
         struct Small(u8);
 
         #[derive(Debug, PartialEq, Eq)]
@@ -556,7 +540,6 @@ mod tests {
 
         impl Small {
             fn new(val: u8) -> Result<Self, Bad> {
-                println!("new: {}", val);
                 if val > 100 {
                     Err(Bad)
                 } else {
@@ -577,27 +560,26 @@ mod tests {
             fn add_size(&self, size: &Small) -> Result<Self, Bad> {
                 // Fails on overflowing 100
                 let val = self.0.checked_add(size.0).ok_or(Bad)?;
-                println!("add_size: {}", val);
                 Self::new(val)
             }
         }
 
-        /*
         impl SizedValueFallible<Small, Bad> for Small {
             fn size(&self) -> Result<Small, Bad> {
                 Self::new(self.0)
             }
         }
-        */
 
         let mut map = AddendedOrderedMapFallible::new();
         let settings = FindSettings::new(true);
 
         let key = Small::new(50).unwrap();
-        let key_plus_1 = Small::new(50 + 1).unwrap();
 
         let ret = map.find_mut_or_insert_with(key, settings, || Small::new(20));
         assert_eq!(ret, Ok((&mut Small::new(20).unwrap(), true)),);
+
+        let key = Small::new(50).unwrap();
+        let key_plus_1 = Small::new(50 + 1).unwrap();
 
         // Not finding a value doesn't fail, it just returns Ok(None).
         let ret = map.find(&Small::zero(), settings);
@@ -611,8 +593,7 @@ mod tests {
 
         // Set to a value that will overflow if added with its key.
         let val = val.unwrap();
-        let big_value = Small::new(90).unwrap();
-        *val = big_value;
+        *val = Small::new(90).unwrap();
 
         // Fails to do ranged lookups
         let ret = map.find(&key_plus_1, settings);
@@ -620,6 +601,7 @@ mod tests {
 
         // The only way to retrieve this value now is by doing exact lookups
         let ret = map.find(&key, settings);
+        let big_value = Small::new(90).unwrap();
         assert_eq!(ret, Ok(Some((&key, &big_value))),);
     }
 }
