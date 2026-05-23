@@ -8,9 +8,6 @@ use super::{AddendableKey, SizedValue};
 use crate::fallible::AddendedOrderedMapFallible;
 use crate::FindSettings;
 
-pub type Range<'a, K, V> = btree_map::Range<'a, K, V>;
-pub type RangeMut<'a, K, V> = btree_map::RangeMut<'a, K, V>;
-
 /// An ordered mapping with addended lookups per key.
 ///
 /// Each lookup can be either be an exact lookup (like a classic mapping), or
@@ -592,7 +589,7 @@ where
     }
 
     /// Gets an iterator over the specific range of the map, sorted by key.
-    pub fn range<R>(&self, range: R) -> Range<'_, K, V>
+    pub fn range<R>(&self, range: R) -> btree_map::Range<'_, K, V>
     where
         R: RangeBounds<K>,
     {
@@ -600,7 +597,7 @@ where
     }
 
     /// Gets a mutable iterator over the specific range of the map, sorted by key.
-    pub fn range_mut<R>(&mut self, range: R) -> RangeMut<'_, K, V>
+    pub fn range_mut<R>(&mut self, range: R) -> btree_map::RangeMut<'_, K, V>
     where
         R: RangeBounds<K>,
     {

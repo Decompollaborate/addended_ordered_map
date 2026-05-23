@@ -13,7 +13,10 @@ extern crate alloc;
 
 pub mod fallible;
 mod find_settings;
-mod infallible;
+pub mod infallible;
 
 pub use find_settings::FindSettings;
-pub use infallible::*;
+
+pub use self::infallible::AddendableKey;
+pub use self::infallible::AddendedOrderedMap;
+pub use self::infallible::SizedValue;
