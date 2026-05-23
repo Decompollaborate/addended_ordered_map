@@ -3,6 +3,7 @@
 
 use crate::fallible::SizedValueFallible;
 
+/// A value type that can report its size.
 pub trait SizedValue<SIZE> {
     fn size(&self) -> SIZE;
 }

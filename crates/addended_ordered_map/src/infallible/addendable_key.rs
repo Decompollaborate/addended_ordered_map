@@ -5,6 +5,7 @@ use core::ops::Add;
 
 use crate::fallible::AddendableKeyFallible;
 
+/// A key that can be added with a size to know how big a range is.
 pub trait AddendableKey<SIZE>
 where
     Self: Sized,

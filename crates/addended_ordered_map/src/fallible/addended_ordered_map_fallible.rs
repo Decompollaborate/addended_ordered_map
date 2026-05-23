@@ -24,6 +24,10 @@ use crate::FindSettings;
 /// The range for each key is a half open one, where the start is closed but
 /// the end one is open (inclusive, exclusive range).
 ///
+/// Generic parameters `SIZE` and `E` allow fallible size and key-addition
+/// operations, so this map works with types whose addend or size computations
+/// may fail.
+///
 /// # Examples
 ///
 /// ```
@@ -177,6 +181,9 @@ where
     /// the mapping plus the addend given by the value associated to that key.
     ///
     /// Use [`FindSettings`] with `allow_addend=false` to do exact lookups.
+    ///
+    /// If the underlying `add_size` or `size` operation fails, the error is
+    /// returned directly and no lookup result is produced.
     ///
     /// For a mutable variant, see [`find_mut`].
     ///
