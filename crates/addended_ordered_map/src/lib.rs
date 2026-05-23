@@ -1,6 +1,7 @@
 /* SPDX-FileCopyrightText: © 2026 Decompollaborate */
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
+#![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(feature = "nightly", feature(btree_cursors))]
 #![warn(clippy::ref_option)]

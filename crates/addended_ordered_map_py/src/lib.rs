@@ -1,10 +1,10 @@
 /* SPDX-FileCopyrightText: © 2026 Decompollaborate */
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
+#![doc = include_str!("../README.md")]
 #![warn(clippy::ref_option)]
 #![warn(clippy::ref_option_ref)]
 #![warn(clippy::useless_let_if_seq)]
-
 
 use pyo3::prelude::*;
 

@@ -45,7 +45,6 @@ impl PySizedValueBase {
 #[repr(transparent)]
 pub struct PySizedValueBaseWrapper(Py<PySizedValueBase>);
 
-
 impl SizedValueFallible<PyS, PyErr> for PySizedValueBaseWrapper {
     fn size(&self) -> Result<PyS, PyErr> {
         Python::try_attach(|py| {
@@ -68,7 +67,6 @@ impl PySizedValueBaseWrapperArc {
         Self(Arc::new(PySizedValueBaseWrapper(value)))
     }
 }
-
 
 impl SizedValueFallible<PyS, PyErr> for PySizedValueBaseWrapperArc {
     fn size(&self) -> Result<PyS, PyErr> {

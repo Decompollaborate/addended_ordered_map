@@ -8,7 +8,13 @@ pub struct FindSettings {
 }
 
 impl FindSettings {
+    #[must_use]
     pub const fn new(allow_addend: bool) -> Self {
         Self { allow_addend }
+    }
+
+    #[must_use]
+    pub const fn allow_addend(&self) -> bool {
+        self.allow_addend
     }
 }

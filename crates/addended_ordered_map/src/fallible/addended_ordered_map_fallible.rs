@@ -260,7 +260,7 @@ where
         K: Copy,
         F: FnOnce() -> Result<V, E>,
     {
-        add_impl(self, &key, settings, || Ok((key, default()?)))
+        add_impl(self, &key, settings, || default().map(|v| (key, v)))
     }
 
     pub fn find_mut_or_insert_with_key_value<F>(
@@ -310,11 +310,9 @@ where
         self.inner.iter()
     }
 
-    /*
-    pub fn iter_mut(&mut self) -> btree_map::IterMut<K, V> {
+    pub fn iter_mut(&mut self) -> btree_map::IterMut<'_, K, V> {
         self.inner.iter_mut()
     }
-    */
 
     pub fn range<R>(&self, range: R) -> Range<'_, K, V>
     where
@@ -545,5 +543,83 @@ mod tests {
             map.find_left_of(&0x1004, true),
             map.find_right_of(&0x1004, true),
         );
+    }
+
+    #[test]
+    fn small() {
+        // Hold values from 0 to 100
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+        struct Small(u8);
+
+        #[derive(Debug, PartialEq, Eq)]
+        struct Bad;
+
+        impl Small {
+            fn new(val: u8) -> Result<Self, Bad> {
+                println!("new: {}", val);
+                if val > 100 {
+                    Err(Bad)
+                } else {
+                    Ok(Self(val))
+                }
+            }
+
+            fn zero() -> Self {
+                Self(0)
+            }
+
+            fn max() -> Self {
+                Self(100)
+            }
+        }
+
+        impl AddendableKeyFallible<Small, Bad> for Small {
+            fn add_size(&self, size: &Small) -> Result<Self, Bad> {
+                // Fails on overflowing 100
+                let val = self.0.checked_add(size.0).ok_or(Bad)?;
+                println!("add_size: {}", val);
+                Self::new(val)
+            }
+        }
+
+        /*
+        impl SizedValueFallible<Small, Bad> for Small {
+            fn size(&self) -> Result<Small, Bad> {
+                Self::new(self.0)
+            }
+        }
+        */
+
+        let mut map = AddendedOrderedMapFallible::new();
+        let settings = FindSettings::new(true);
+
+        let key = Small::new(50).unwrap();
+        let key_plus_1 = Small::new(50 + 1).unwrap();
+
+        let ret = map.find_mut_or_insert_with(key, settings, || Small::new(20));
+        assert_eq!(ret, Ok((&mut Small::new(20).unwrap(), true)),);
+
+        // Not finding a value doesn't fail, it just returns Ok(None).
+        let ret = map.find(&Small::zero(), settings);
+        assert_eq!(ret, Ok(None),);
+        let ret = map.find(&Small::max(), settings);
+        assert_eq!(ret, Ok(None),);
+
+        // Should not fail to find
+        let ret = map.find_value_mut(&key, settings);
+        let val = ret.unwrap();
+
+        // Set to a value that will overflow if added with its key.
+        let val = val.unwrap();
+        let big_value = Small::new(90).unwrap();
+        *val = big_value;
+
+        // Fails to do ranged lookups
+        let ret = map.find(&key_plus_1, settings);
+        assert_eq!(ret, Err(Bad),);
+
+        // The only way to retrieve this value now is by doing exact lookups
+        let ret = map.find(&key, settings);
+        assert_eq!(ret, Ok(Some((&key, &big_value))),);
     }
 }

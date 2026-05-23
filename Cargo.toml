@@ -7,6 +7,9 @@ members = [
     "crates/addended_ordered_map_py",
 ]
 resolver = "2"
+default-members = [
+    "crates/addended_ordered_map",
+]
 
 # [workspace.package]
 # version = "0.1.0"

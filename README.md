@@ -1,6 +1,6 @@
 # addended_ordered_map
 
-An ordered mapping with addends for each key.
+An ordered mapping with addended lookups per key.
 
 TODO: The rest of the readme.
 
