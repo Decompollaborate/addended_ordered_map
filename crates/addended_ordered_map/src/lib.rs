@@ -7,7 +7,7 @@
 #![warn(clippy::ref_option)]
 #![warn(clippy::ref_option_ref)]
 #![warn(clippy::useless_let_if_seq)]
-// #![warn(missing_docs)] // TODO
+#![warn(missing_docs)]
 
 extern crate alloc;
 

@@ -7,5 +7,8 @@
 /// extends. If the size cannot be produced, the error is propagated to the
 /// caller.
 pub trait SizedValueFallible<SIZE, E> {
+    /// Gets the size associated the value of a pairing.
+    ///
+    /// The size type may be different to the type of the value itself.
     fn size(&self) -> Result<SIZE, E>;
 }

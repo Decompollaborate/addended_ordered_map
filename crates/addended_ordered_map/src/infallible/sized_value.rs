@@ -5,6 +5,9 @@ use crate::fallible::SizedValueFallible;
 
 /// A value type that can report its size.
 pub trait SizedValue<SIZE> {
+    /// Gets the size associated the value of a pairing.
+    ///
+    /// The size type may be different to the type of the value itself.
     fn size(&self) -> SIZE;
 }
 

@@ -10,6 +10,7 @@ pub trait AddendableKey<SIZE>
 where
     Self: Sized,
 {
+    /// Adds a given size value to a key, producing the key type.
     fn add_size(&self, size: &SIZE) -> Self;
 }
 

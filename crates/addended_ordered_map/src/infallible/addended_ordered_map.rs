@@ -18,6 +18,22 @@ use crate::FindSettings;
 /// The range for each key is a half open one, where the start is closed but
 /// the end one is open (inclusive, exclusive range).
 ///
+/// Keys are required to implement the [`Ord`] and [`AddendableKey`] traits,
+/// while values need to implement the [`SizedValue`] trait.
+///
+/// Contrary to common mappings, this type requires a third generic parameter,
+/// the `SIZE`.
+/// This type parameter is used as an intermediary type for the range
+/// calculation for a key, allowing this size type to be different from the key
+/// and value types.
+///
+/// Ranges are not set in stone, they are computed based on the corresponding
+/// value for a given key using the [`SizedValue`] trait each time the range is
+/// needed. This allows sizes (and thus the end of the range) to be modified
+/// _after_ the key/value pair has been inserted into the mapping. This can be
+/// useful if there's not certainty on where the range of a given key ends at
+/// construction time.
+///
 /// # Examples
 ///
 /// ```
@@ -66,6 +82,7 @@ use crate::FindSettings;
 /// ```
 ///
 /// Custom types.
+///
 /// ```
 /// use addended_ordered_map::{AddendedOrderedMap, AddendableKey, FindSettings, SizedValue};
 ///
@@ -107,6 +124,10 @@ use crate::FindSettings;
 ///     None,
 /// );
 /// ```
+///
+/// [`Ord`]: core::cmp::Ord
+/// [`AddendableKey`]: crate::infallible::AddendableKey
+/// [`SizedValue`]: crate::infallible::SizedValue
 pub struct AddendedOrderedMap<K, V, SIZE>
 where
     K: Ord + AddendableKey<SIZE>,
