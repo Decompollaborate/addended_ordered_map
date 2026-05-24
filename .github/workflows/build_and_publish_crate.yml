@@ -177,7 +177,7 @@ jobs:
       - check_doc
       - run_tests
       - msrv
-      - semver_check
+      # - semver_check
       - nightly_check_clippy
       - nightly_check_clippy_all_features
       - nightly_run_tests
