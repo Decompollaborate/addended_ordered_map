@@ -640,6 +640,7 @@ where
     /// without iterating or the iteration short-circuits, then the remaining
     /// elements will be retained.
     #[cfg(feature = "extract_if")]
+    #[clippy::msrv = "1.91"]
     pub fn extract_if<F, R>(&mut self, range: R, pred: F) -> btree_map::ExtractIf<'_, K, V, R, F>
     where
         R: RangeBounds<K>,

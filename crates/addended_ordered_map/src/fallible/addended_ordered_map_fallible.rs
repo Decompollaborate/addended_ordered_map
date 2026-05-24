@@ -154,8 +154,8 @@ use crate::FindSettings;
 /// ```
 ///
 /// [`Ord`]: core::cmp::Ord
-/// [`AddendableKeyFallible`]: crate::infallible::AddendableKeyFallible
-/// [`SizedValueFallible`]: crate::infallible::SizedValueFallible
+/// [`AddendableKeyFallible`]: crate::fallible::AddendableKeyFallible
+/// [`SizedValueFallible`]: crate::fallible::SizedValueFallible
 pub struct AddendedOrderedMapFallible<K, V, SIZE, E>
 where
     K: Ord + AddendableKeyFallible<SIZE, E>,
@@ -799,6 +799,7 @@ where
     /// without iterating or the iteration short-circuits, then the remaining
     /// elements will be retained.
     #[cfg(feature = "extract_if")]
+    #[clippy::msrv = "1.91"]
     pub fn extract_if<F, R>(&mut self, range: R, pred: F) -> btree_map::ExtractIf<'_, K, V, R, F>
     where
         R: RangeBounds<K>,
