@@ -102,8 +102,8 @@ jobs:
       # dependency for every crate in the workspace, but the pyo3 version used
       # in addended_ordered_map_py isn't
       - name: Hack Cargo.toml to avoid miscalculating the MSRV
-        run:
-          cat Cargo.toml | sed  's/"crates\/addended_ordered_map_py",//'  > temp.toml
+        run: |
+          cat Cargo.toml | sed  's/"crates\/addended_ordered_map_py",//' > temp.toml
           mv temp.toml Cargo.toml
 
       - name: Run MSRV checker
