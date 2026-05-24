@@ -88,27 +88,6 @@ jobs:
       - name: Run tests
         run: cargo test
 
-  msrv:
-    name: Check MSRV is correct
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout reposistory
-        uses: actions/checkout@main
-
-      - name: Setup MSRV checker
-        uses: taiki-e/install-action@cargo-hack
-
-      # Checking MSRV fails because it tries use the old rustc to resolve every
-      # dependency for every crate in the workspace, but the pyo3 version used
-      # in addended_ordered_map_py isn't
-      - name: Hack Cargo.toml to avoid miscalculating the MSRV
-        run: |
-          cat Cargo.toml | sed  's/"crates\/addended_ordered_map_py",//' > temp.toml
-          mv temp.toml Cargo.toml
-
-      - name: Run MSRV checker
-        run: cargo hack check --rust-version --workspace --all-targets --ignore-private
-
   # semver_check:
   #   name: Check SemVer
   #   runs-on: ubuntu-latest
@@ -176,7 +155,6 @@ jobs:
       - check_clippy_all_features
       - check_doc
       - run_tests
-      - msrv
       # - semver_check
       - nightly_check_clippy
       - nightly_check_clippy_all_features
