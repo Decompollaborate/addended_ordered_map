@@ -35,7 +35,7 @@ build-backend = "maturin"
 
 [tool.maturin]
 features = [
-    "pyo3",
+    # "pyo3/abi3-py37"
 ]
 cargo-extra-args = "--crate-type=cdylib"
 # Allows to have the .pyi files inside the python/addended_ordered_map dir.

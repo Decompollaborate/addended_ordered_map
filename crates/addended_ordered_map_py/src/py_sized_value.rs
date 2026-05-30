@@ -47,13 +47,17 @@ pub struct PySizedValueBaseWrapper(Py<PySizedValueBase>);
 
 impl SizedValueFallible<PyS, PyErr> for PySizedValueBaseWrapper {
     fn size(&self) -> Result<PyS, PyErr> {
-        Python::try_attach(|py| {
-            let size = self.0.call_method0(py, "get_size")?;
-            let s: u64 = size.extract(py)?;
-            Ok(s)
-        })
-        .ok_or_else(|| PyRuntimeError::new_err("Error when adquiring the GIL"))
-        .flatten()
+        Python::try_attach(|py| self.0.call_method0(py, "get_size"))
+            .ok_or_else(|| PyRuntimeError::new_err("Error when adquiring the GIL"))
+            .flatten()
+    }
+}
+
+impl Deref for PySizedValueBaseWrapper {
+    type Target = Py<PySizedValueBase>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -76,14 +80,6 @@ impl SizedValueFallible<PyS, PyErr> for PySizedValueBaseWrapperArc {
 
 impl Deref for PySizedValueBaseWrapperArc {
     type Target = Arc<PySizedValueBaseWrapper>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Deref for PySizedValueBaseWrapper {
-    type Target = Py<PySizedValueBase>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

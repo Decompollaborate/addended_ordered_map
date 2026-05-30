@@ -1,20 +1,18 @@
 /* SPDX-FileCopyrightText: © 2026 Decompollaborate */
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
-use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::types::PyInt;
 
 use addended_ordered_map::fallible::AddendedOrderedMapFallible;
 
-use crate::py_alias::{PyK, PyS, PyV, PyVWA};
+use crate::py_alias::{PyK, PyKWA, PyS, PyV, PyVWA};
 use crate::{PyFindSettings, PyIntoIter, PyRangeMut};
 
 #[pyclass(name = "AddendedOrderedMap", module = "addended_ordered_map", generic)]
 pub struct PyAddendedOrderedMap {
     // We use Arc because Py can't be just cloned
     // https://pyo3.rs/v0.28.2/migration.html#pyclone-is-now-gated-behind-the-py-clone-feature
-    inner: AddendedOrderedMapFallible<PyK, PyVWA, PyS, PyErr>,
+    inner: AddendedOrderedMapFallible<PyKWA, PyVWA, PyS, PyErr>,
 }
 
 #[pymethods]
@@ -35,65 +33,46 @@ impl PyAddendedOrderedMap {
     }
 
     #[pyo3(signature = (key, settings = PyFindSettings::new(true)))]
-    pub fn find<'py>(
-        &self,
-        key: PyK,
-        settings: PyFindSettings,
-    ) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
+    pub fn find(&self, key: PyK, settings: PyFindSettings) -> PyResult<Option<(&PyK, &PyV)>> {
         let find_settings = settings.into_inner();
 
-        if let Some((k, v)) = self.inner.find(&key, find_settings)? {
-            let k2 = Python::try_attach(|py| k.into_pyobject(py).map(|x| x.unbind()))
-                .ok_or_else(|| PyRuntimeError::new_err("Internal conversion error"))??;
-
-            Ok(Some((k2, v)))
+        if let Some((k, v)) = self.inner.find(&PyKWA::new(key), find_settings)? {
+            Ok(Some((k, v)))
         } else {
             Ok(None)
         }
     }
 
     #[pyo3(signature = (key, settings = PyFindSettings::new(true)))]
-    pub fn find_key<'py>(&self, key: PyK, settings: PyFindSettings) -> PyResult<Option<Py<PyInt>>> {
+    pub fn find_key(&self, key: PyK, settings: PyFindSettings) -> PyResult<Option<&PyK>> {
         Ok(self.find(key, settings)?.map(|x| x.0))
     }
 
     #[pyo3(signature = (key, settings = PyFindSettings::new(true)))]
-    pub fn find_value<'py>(&self, key: PyK, settings: PyFindSettings) -> PyResult<Option<&PyV>> {
+    pub fn find_value(&self, key: PyK, settings: PyFindSettings) -> PyResult<Option<&PyV>> {
         Ok(self.find(key, settings)?.map(|x| x.1))
     }
 
     #[pyo3(signature = (key, inclusive = false))]
-    pub fn find_left_of(
-        &self,
-        py: Python<'_>,
-        key: PyK,
-        inclusive: bool,
-    ) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
-        if let Some((k, v)) = self.inner.find_left_of(&key, inclusive) {
-            let k2 = k.into_pyobject(py)?.unbind();
-            Ok(Some((k2, v)))
+    pub fn find_left_of(&self, key: PyK, inclusive: bool) -> PyResult<Option<(&PyK, &PyV)>> {
+        if let Some((k, v)) = self.inner.find_left_of(&PyKWA::new(key), inclusive) {
+            Ok(Some((k, v)))
         } else {
             Ok(None)
         }
     }
 
     #[pyo3(signature = (key, inclusive = false))]
-    pub fn find_right_of(
-        &self,
-        py: Python<'_>,
-        key: PyK,
-        inclusive: bool,
-    ) -> PyResult<Option<(Py<PyInt>, &PyV)>> {
-        if let Some((k, v)) = self.inner.find_right_of(&key, inclusive) {
-            let k2 = k.into_pyobject(py)?.unbind();
-            Ok(Some((k2, v)))
+    pub fn find_right_of(&self, key: PyK, inclusive: bool) -> PyResult<Option<(&PyK, &PyV)>> {
+        if let Some((k, v)) = self.inner.find_right_of(&PyKWA::new(key), inclusive) {
+            Ok(Some((k, v)))
         } else {
             Ok(None)
         }
     }
 
     #[pyo3(signature = (key, new_value, settings = PyFindSettings::new(true)))]
-    pub fn find_or_insert<'py>(
+    pub fn find_or_insert(
         &mut self,
         key: PyK,
         new_value: PyV,
@@ -101,9 +80,11 @@ impl PyAddendedOrderedMap {
     ) -> PyResult<(&PyV, bool)> {
         let find_settings = settings.into_inner();
 
-        let (v, newly_created) = self
-            .inner
-            .find_mut_or_insert_with(key, find_settings, || Ok(PyVWA::new(new_value)))?;
+        let (v, newly_created) =
+            self.inner
+                .find_mut_or_insert_with(PyKWA::new(key), find_settings, || {
+                    Ok(PyVWA::new(new_value))
+                })?;
         Ok((v, newly_created))
     }
 
@@ -117,37 +98,41 @@ impl PyAddendedOrderedMap {
         // if !new_default.is_callable()
         let find_settings = settings.into_inner();
 
-        let (v, newly_created) = self.inner.find_mut_or_insert_with(key, find_settings, || {
-            // call a callable python object/function/lambda/etc
-            let result = new_default.call0()?;
-            let casted = result.cast().map(|x| x.clone().unbind())?;
-            Ok(PyVWA::new(casted))
-        })?;
+        let (v, newly_created) =
+            self.inner
+                .find_mut_or_insert_with(PyKWA::new(key), find_settings, || {
+                    // call a callable python object/function/lambda/etc
+                    let result = new_default.call0()?;
+                    let casted = result.cast().map(|x| x.clone().unbind())?;
+                    Ok(PyVWA::new(casted))
+                })?;
         Ok((v, newly_created))
     }
 
     pub fn contains_key_exact(&self, key: PyK) -> bool {
-        self.inner.contains_key_exact(&key)
+        self.inner.contains_key_exact(&PyKWA::new(key))
     }
 
-    pub fn pop_exact<'py>(&mut self, py: Python<'py>, key: PyK) -> Option<(PyK, PyV)> {
+    pub fn pop_exact(&mut self, py: Python, key: PyK) -> Option<(PyK, PyV)> {
         self.inner
-            .pop_exact(&key)
-            .map(|(k, v)| (k, v.clone_ref(py)))
+            .pop_exact(&PyKWA::new(key))
+            .map(|(k, v)| (k.clone_ref(py), v.clone_ref(py)))
     }
 
-    pub fn pop_range<'py>(
+    pub fn pop_range(
         &mut self,
-        py: Python<'py>,
+        py: Python,
         left: Option<PyK>,
         right: Option<PyK>,
     ) -> Vec<(PyK, PyV)> {
-        fn map_impl<'py>(
-            py: Python<'py>,
-            iter: impl Iterator<Item = (PyK, PyVWA)>,
-        ) -> Vec<(PyK, PyV)> {
-            iter.map(|(k, v)| (k, v.clone_ref(py))).collect()
+        fn map_impl(py: Python, iter: impl Iterator<Item = (PyKWA, PyVWA)>) -> Vec<(PyK, PyV)> {
+            iter.map(|(k, v)| (k.clone_ref(py), v.clone_ref(py)))
+                .collect()
         }
+
+        let left = left.map(PyKWA::new);
+        let right = right.map(PyKWA::new);
+
         match (left, right) {
             (Some(l), Some(r)) => map_impl(py, self.inner.extract_if(l..r, |_k, _v| true)),
             (Some(l), None) => map_impl(py, self.inner.extract_if(l.., |_k, _v| true)),
@@ -181,7 +166,7 @@ impl PyAddendedOrderedMap {
 
     // values
 
-    pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<String> {
+    pub fn __repr__(&self, py: Python) -> PyResult<String> {
         let mut out = String::new();
         out += "AddendedOrderedMapFallible({";
         out += self.repr_body(py)?.as_str();
@@ -189,31 +174,39 @@ impl PyAddendedOrderedMap {
         Ok(out)
     }
 
-    pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<String> {
+    pub fn __str__(&self, py: Python) -> PyResult<String> {
         self.__repr__(py)
     }
 }
 
 impl PyAddendedOrderedMap {
-    pub fn repr_body<'py>(&self, py: Python<'py>) -> PyResult<String> {
+    pub fn repr_body(&self, py: Python) -> PyResult<String> {
         let mut body = String::new();
         let mut iter = self.inner.iter();
 
         // special case the first case to allow adding the comma in the loop
         if let Some((k, v)) = iter.next() {
+            let k_repr = k.call_method0(py, "__repr__")?;
             let v_repr = v.call_method0(py, "__repr__")?;
 
-            body += &format!("{k}: {v_repr}");
+            body += &format!("{k_repr}: {v_repr}");
         } else {
             return Ok(body);
         }
 
         for (k, v) in iter {
+            let k_repr = k.call_method0(py, "__repr__")?;
             let v_repr = v.call_method0(py, "__repr__")?;
 
-            body += &format!(", {k}: {v_repr}");
+            body += &format!(", {k_repr}: {v_repr}");
         }
 
         Ok(body)
+    }
+}
+
+impl Default for PyAddendedOrderedMap {
+    fn default() -> Self {
+        Self::new()
     }
 }

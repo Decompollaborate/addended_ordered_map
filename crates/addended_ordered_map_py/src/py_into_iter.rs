@@ -8,7 +8,7 @@ use pyo3::prelude::*;
 
 use addended_ordered_map::fallible::AddendedOrderedMapFallible;
 
-use crate::py_alias::{PyK, PyS, PyV, PyVWA};
+use crate::py_alias::{PyK, PyKWA, PyS, PyV, PyVWA};
 
 #[pyclass(
     name = "AddendedOrderedMapIter",
@@ -17,7 +17,7 @@ use crate::py_alias::{PyK, PyS, PyV, PyVWA};
 )]
 #[must_use]
 pub struct PyIntoIter {
-    inner: btree_map::IntoIter<PyK, PyVWA>,
+    inner: btree_map::IntoIter<PyKWA, PyVWA>,
 }
 
 #[pymethods]
@@ -30,16 +30,16 @@ impl PyIntoIter {
         slf.inner
             .next()
             .map(|(k, v)| {
-                let new_v = Python::try_attach(|py| v.clone_ref(py))
+                let (new_k, new_v) = Python::try_attach(|py| (k.clone_ref(py), v.clone_ref(py)))
                     .ok_or_else(|| PyRuntimeError::new_err("Internal error"))?;
-                Ok((k, new_v))
+                Ok((new_k, new_v))
             })
             .transpose()
     }
 }
 
 impl PyIntoIter {
-    pub fn new(map: AddendedOrderedMapFallible<PyK, PyVWA, PyS, PyErr>) -> Self {
+    pub fn new(map: AddendedOrderedMapFallible<PyKWA, PyVWA, PyS, PyErr>) -> Self {
         Self {
             inner: map.into_iter(),
         }

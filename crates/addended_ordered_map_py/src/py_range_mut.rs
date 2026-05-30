@@ -8,7 +8,7 @@ use pyo3::prelude::*;
 
 use addended_ordered_map::fallible::AddendedOrderedMapFallible;
 
-use crate::py_alias::{PyK, PyS, PyV, PyVWA};
+use crate::py_alias::{PyK, PyKWA, PyS, PyV, PyVWA};
 
 #[pyclass(
     name = "AddendedOrderedMapRange",
@@ -20,7 +20,7 @@ pub struct PyRangeMut {
     // We can't use real Range/RangeMut because they require a lifetime
     // parameter, which is a no-no for pyo3.
     // Instead we collect the range into a vec iterator.
-    inner: vec::IntoIter<(PyK, PyVWA)>,
+    inner: vec::IntoIter<(PyKWA, PyVWA)>,
 }
 
 #[pymethods]
@@ -33,9 +33,9 @@ impl PyRangeMut {
         slf.inner
             .next()
             .map(|(k, v)| {
-                let new_v = Python::try_attach(|py| v.clone_ref(py))
+                let (new_k, new_v) = Python::try_attach(|py| (k.clone_ref(py), v.clone_ref(py)))
                     .ok_or_else(|| PyRuntimeError::new_err("Internal error"))?;
-                Ok((k, new_v))
+                Ok((new_k, new_v))
             })
             .transpose()
     }
@@ -43,10 +43,13 @@ impl PyRangeMut {
 
 impl PyRangeMut {
     pub fn new(
-        map: &mut AddendedOrderedMapFallible<PyK, PyVWA, PyS, PyErr>,
+        map: &mut AddendedOrderedMapFallible<PyKWA, PyVWA, PyS, PyErr>,
         left: Option<PyK>,
         right: Option<PyK>,
     ) -> Self {
+        let left = left.map(PyKWA::new);
+        let right = right.map(PyKWA::new);
+
         let range = match (left, right) {
             (Some(l), Some(r)) => map.range(l..r),
             (Some(l), None) => map.range(l..),

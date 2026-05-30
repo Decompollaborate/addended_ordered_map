@@ -21,7 +21,7 @@ rust-version = "1.60.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "addended_ordered_map_py"
+name = "addended_ordered_map"
 path = "src/lib.rs"
 
 [features]
