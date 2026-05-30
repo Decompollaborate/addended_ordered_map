@@ -5,18 +5,22 @@
 
 from typing import Callable, Iterator, Generic, Optional, TypeVar
 
+K = TypeVar("K")
+V = TypeVar("V", bound=SizedValue)
+S = TypeVar("S")
+
+
 class FindSettings:
     def __init__(
         self,
         allow_addend: bool,
     ) -> None: ...
 
-class SizedValue:
-    def get_size(self) -> int: ...
+class SizedValue(Generic[S]):
+    def get_size(self) -> S: ...
 
-V = TypeVar("V", bound=SizedValue)
 
-class AddendedOrderedMap(Generic[V]):
+class AddendedOrderedMap(Generic[K, V, S]):
     def __init__(self) -> None: ...
 
     def len(self) -> int: ...
@@ -24,73 +28,73 @@ class AddendedOrderedMap(Generic[V]):
 
     def find(
         self,
-        key: int,
+        key: K,
         settings: FindSettings = FindSettings(True),
-    ) -> Optional[tuple[int, V]]: ...
+    ) -> Optional[tuple[K, V]]: ...
 
     def find_key(
         self,
-        key: int,
+        key: K,
         settings: FindSettings = FindSettings(True),
-    ) -> Optional[int]: ...
+    ) -> Optional[K]: ...
 
     def find_value(
         self,
-        key: int,
+        key: K,
         settings: FindSettings = FindSettings(True),
     ) -> Optional[V]: ...
 
     def find_left_of(
         self,
-        key: int,
+        key: K,
         inclusive: bool = False
-    ) -> Optional[tuple[int, V]]: ...
+    ) -> Optional[tuple[K, V]]: ...
 
     def find_right_of(
         self,
-        key: int,
+        key: K,
         inclusive: bool = False
-    ) -> Optional[tuple[int, V]]: ...
+    ) -> Optional[tuple[K, V]]: ...
 
     def find_or_insert(
         self,
-        key: int,
+        key: K,
         new_value: V,
         settings: FindSettings = FindSettings(True),
     ) -> tuple[V, bool]: ...
 
     def find_or_insert_with(
         self,
-        key: int,
+        key: K,
         new_default: Callable[[], V],
         settings: FindSettings = FindSettings(True),
     ) -> tuple[V, bool]: ...
 
     def contains_key_exact(
         self,
-        key: int,
+        key: K,
     ) -> bool: ...
 
     def pop_exact(
         self,
-        key: int,
-    ) -> Optional[tuple[int, V]]: ...
+        key: K,
+    ) -> Optional[tuple[K, V]]: ...
 
     def pop_range(
         self,
-        left: Optional[int],
-        right: Optional[int],
-    ) -> list[tuple[int, V]]: ...
+        left: Optional[K],
+        right: Optional[K],
+    ) -> list[tuple[K, V]]: ...
 
     def clear(self) -> None: ...
 
-    def __iter__(self) -> Iterator[tuple[int, V]]: ...
+    def __iter__(self) -> Iterator[tuple[K, V]]: ...
 
     def range(
         self,
-        left: Optional[int],
-        right: Optional[int],
-    ) -> Iterator[tuple[int, V]]: ...
+        left: Optional[K],
+        right: Optional[K],
+    ) -> Iterator[tuple[K, V]]: ...
 
     def __repr__(self) -> str: ...
     def __str__(self) -> str: ...

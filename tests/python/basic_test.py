@@ -24,7 +24,7 @@ class TestValue(SizedValue):
 
 
 def basic_test():
-    test_map: AddendedOrderedMap[TestValue] = AddendedOrderedMap()
+    test_map: AddendedOrderedMap[int, TestValue, int] = AddendedOrderedMap()
 
     value_0x100C = TestValue(0x100C, 1)
     value_0x1000 = TestValue(0x1000, 4)
@@ -111,7 +111,7 @@ def basic_test():
 
 
 def basic_test_with():
-    test_map: AddendedOrderedMap[TestValue] = AddendedOrderedMap()
+    test_map: AddendedOrderedMap[int, TestValue, int] = AddendedOrderedMap()
 
     value_0x100C = TestValue(0x100C, 1)
     value_0x1000 = TestValue(0x1000, 4)
