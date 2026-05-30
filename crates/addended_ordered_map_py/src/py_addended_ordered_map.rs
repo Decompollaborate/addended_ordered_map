@@ -5,14 +5,14 @@ use pyo3::prelude::*;
 
 use addended_ordered_map::fallible::AddendedOrderedMapFallible;
 
-use crate::py_alias::{PyK, PyKWA, PyS, PyV, PyVWA};
+use crate::py_alias::{PyK, PyKW, PyS, PyV, PyVW};
 use crate::{PyFindSettings, PyIntoIter, PyRangeMut};
 
 #[pyclass(name = "AddendedOrderedMap", module = "addended_ordered_map", generic)]
 pub struct PyAddendedOrderedMap {
     // We use Arc because Py can't be just cloned
     // https://pyo3.rs/v0.28.2/migration.html#pyclone-is-now-gated-behind-the-py-clone-feature
-    inner: AddendedOrderedMapFallible<PyKWA, PyVWA, PyS, PyErr>,
+    inner: AddendedOrderedMapFallible<PyKW, PyVW, PyS, PyErr>,
 }
 
 #[pymethods]
@@ -36,7 +36,7 @@ impl PyAddendedOrderedMap {
     pub fn find(&self, key: PyK, settings: PyFindSettings) -> PyResult<Option<(&PyK, &PyV)>> {
         let find_settings = settings.into_inner();
 
-        if let Some((k, v)) = self.inner.find(&PyKWA::new(key), find_settings)? {
+        if let Some((k, v)) = self.inner.find(&PyKW::new(key), find_settings)? {
             Ok(Some((k, v)))
         } else {
             Ok(None)
@@ -55,7 +55,7 @@ impl PyAddendedOrderedMap {
 
     #[pyo3(signature = (key, inclusive = false))]
     pub fn find_left_of(&self, key: PyK, inclusive: bool) -> PyResult<Option<(&PyK, &PyV)>> {
-        if let Some((k, v)) = self.inner.find_left_of(&PyKWA::new(key), inclusive) {
+        if let Some((k, v)) = self.inner.find_left_of(&PyKW::new(key), inclusive) {
             Ok(Some((k, v)))
         } else {
             Ok(None)
@@ -64,7 +64,7 @@ impl PyAddendedOrderedMap {
 
     #[pyo3(signature = (key, inclusive = false))]
     pub fn find_right_of(&self, key: PyK, inclusive: bool) -> PyResult<Option<(&PyK, &PyV)>> {
-        if let Some((k, v)) = self.inner.find_right_of(&PyKWA::new(key), inclusive) {
+        if let Some((k, v)) = self.inner.find_right_of(&PyKW::new(key), inclusive) {
             Ok(Some((k, v)))
         } else {
             Ok(None)
@@ -82,8 +82,8 @@ impl PyAddendedOrderedMap {
 
         let (v, newly_created) =
             self.inner
-                .find_mut_or_insert_with(PyKWA::new(key), find_settings, || {
-                    Ok(PyVWA::new(new_value))
+                .find_mut_or_insert_with(PyKW::new(key), find_settings, || {
+                    Ok(PyVW::new(new_value))
                 })?;
         Ok((v, newly_created))
     }
@@ -100,22 +100,22 @@ impl PyAddendedOrderedMap {
 
         let (v, newly_created) =
             self.inner
-                .find_mut_or_insert_with(PyKWA::new(key), find_settings, || {
+                .find_mut_or_insert_with(PyKW::new(key), find_settings, || {
                     // call a callable python object/function/lambda/etc
                     let result = new_default.call0()?;
                     let casted = result.cast().map(|x| x.clone().unbind())?;
-                    Ok(PyVWA::new(casted))
+                    Ok(PyVW::new(casted))
                 })?;
         Ok((v, newly_created))
     }
 
     pub fn contains_key_exact(&self, key: PyK) -> bool {
-        self.inner.contains_key_exact(&PyKWA::new(key))
+        self.inner.contains_key_exact(&PyKW::new(key))
     }
 
     pub fn pop_exact(&mut self, py: Python, key: PyK) -> Option<(PyK, PyV)> {
         self.inner
-            .pop_exact(&PyKWA::new(key))
+            .pop_exact(&PyKW::new(key))
             .map(|(k, v)| (k.clone_ref(py), v.clone_ref(py)))
     }
 
@@ -125,13 +125,13 @@ impl PyAddendedOrderedMap {
         left: Option<PyK>,
         right: Option<PyK>,
     ) -> Vec<(PyK, PyV)> {
-        fn map_impl(py: Python, iter: impl Iterator<Item = (PyKWA, PyVWA)>) -> Vec<(PyK, PyV)> {
+        fn map_impl(py: Python, iter: impl Iterator<Item = (PyKW, PyVW)>) -> Vec<(PyK, PyV)> {
             iter.map(|(k, v)| (k.clone_ref(py), v.clone_ref(py)))
                 .collect()
         }
 
-        let left = left.map(PyKWA::new);
-        let right = right.map(PyKWA::new);
+        let left = left.map(PyKW::new);
+        let right = right.map(PyKW::new);
 
         match (left, right) {
             (Some(l), Some(r)) => map_impl(py, self.inner.extract_if(l..r, |_k, _v| true)),

@@ -3,15 +3,10 @@
 
 use pyo3::prelude::*;
 
-use crate::{
-    PyAddendableKeyWrapper, PyAddendableKeyWrapperArc, PySizedValueBase, PySizedValueBaseWrapper,
-    PySizedValueBaseWrapperArc,
-};
+use crate::{PyAddendableKeyWrapper, PySizedValueBase, PySizedValueBaseWrapperArc};
 
 pub type PyK = Py<PyAny>;
 pub type PyKW = PyAddendableKeyWrapper;
-pub type PyKWA = PyAddendableKeyWrapperArc;
 pub type PyV = Py<PySizedValueBase>;
-pub type PyVW = PySizedValueBaseWrapper;
-pub type PyVWA = PySizedValueBaseWrapperArc;
+pub type PyVW = PySizedValueBaseWrapperArc;
 pub type PyS = Py<PyAny>;

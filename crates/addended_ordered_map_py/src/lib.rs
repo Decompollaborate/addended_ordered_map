@@ -19,9 +19,9 @@ mod py_sized_value;
 pub use py_addended_ordered_map::PyAddendedOrderedMap;
 pub use py_find_settings::PyFindSettings;
 pub use py_into_iter::PyIntoIter;
-pub use py_key::{PyAddendableKeyWrapper, PyAddendableKeyWrapperArc};
+pub use py_key::PyAddendableKeyWrapper;
 pub use py_range_mut::PyRangeMut;
-pub use py_sized_value::{PySizedValueBase, PySizedValueBaseWrapper, PySizedValueBaseWrapperArc};
+pub use py_sized_value::{PySizedValueBase, PySizedValueBaseWrapperArc};
 
 #[pymodule]
 fn addended_ordered_map(m: &Bound<'_, PyModule>) -> PyResult<()> {

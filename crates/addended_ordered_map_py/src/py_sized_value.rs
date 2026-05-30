@@ -40,12 +40,18 @@ impl PySizedValueBase {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 #[non_exhaustive]
 #[repr(transparent)]
-pub struct PySizedValueBaseWrapper(Py<PySizedValueBase>);
+pub struct PySizedValueBaseWrapperArc(Arc<Py<PySizedValueBase>>);
 
-impl SizedValueFallible<PyS, PyErr> for PySizedValueBaseWrapper {
+impl PySizedValueBaseWrapperArc {
+    pub fn new(value: Py<PySizedValueBase>) -> Self {
+        Self(Arc::new(value))
+    }
+}
+
+impl SizedValueFallible<PyS, PyErr> for PySizedValueBaseWrapperArc {
     fn size(&self) -> Result<PyS, PyErr> {
         Python::try_attach(|py| self.0.call_method0(py, "get_size"))
             .ok_or_else(|| PyRuntimeError::new_err("Error when adquiring the GIL"))
@@ -53,33 +59,8 @@ impl SizedValueFallible<PyS, PyErr> for PySizedValueBaseWrapper {
     }
 }
 
-impl Deref for PySizedValueBaseWrapper {
-    type Target = Py<PySizedValueBase>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug)]
-#[non_exhaustive]
-#[repr(transparent)]
-pub struct PySizedValueBaseWrapperArc(Arc<PySizedValueBaseWrapper>);
-
-impl PySizedValueBaseWrapperArc {
-    pub fn new(value: Py<PySizedValueBase>) -> Self {
-        Self(Arc::new(PySizedValueBaseWrapper(value)))
-    }
-}
-
-impl SizedValueFallible<PyS, PyErr> for PySizedValueBaseWrapperArc {
-    fn size(&self) -> Result<PyS, PyErr> {
-        Arc::as_ref(&self.0).size()
-    }
-}
-
 impl Deref for PySizedValueBaseWrapperArc {
-    type Target = Arc<PySizedValueBaseWrapper>;
+    type Target = Arc<Py<PySizedValueBase>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
